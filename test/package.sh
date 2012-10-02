@@ -19,4 +19,7 @@ echo ; echo "---- Test local_id ----"
 echo ; echo "---- Test lock_local ----"
 "$MYDIR/lock_local.sh" || RESULT=$?
 
+echo ; echo "---- Test ssh_id ----"
+"$MYDIR/ssh_id.sh" || RESULT=$?
+
 exit $RESULT
