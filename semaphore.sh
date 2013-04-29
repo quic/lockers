@@ -29,6 +29,7 @@ info() { debug "$@" ; [ "$DEBUG" = "INFO" ] && echo "$(d)$@" >&2 ; }
 error() { echo "$(d)$1" >&2 ; exit $2 ; }
 
 random_slots() { # max > 1..max(in some random order)
+  [ $1 -eq 1 ] && { echo 1 ; return ; }
   local start=$(( (RANDOM % ($1 -1)) +1 ))
   seq $start $1
   [ $start -gt 1 ] && seq 1 $((start -1))
