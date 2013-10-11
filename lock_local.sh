@@ -107,10 +107,11 @@ usage() { # error_message
            $prog owner <lock_path> > id
            $prog is_mine <lock_path> id
 
-    A filesystem based lock manager requiring a unique id representing
+    A filesystem based lock manager requiring a pid representing
     the lock holder.
 
-    WARNING: use of owner is discouraged since it returns a non unique id
+    WARNING: use of owner is discouraged since it returns a
+             potentially non unique pid
 
 EOF
     [ $# -gt 0 ] && echo "Error - $@" >&2
@@ -124,6 +125,7 @@ ID_HELPER=("$mydir/local_id.sh")
 FAST_LOCKER=("$mydir/fast_lock.sh")
 while [ $# -gt 0 ] ; do
     case "$1" in
+        -u|-h|--help) usage ;;
         -di|--info) DEBUG=INFO ;;
         -d|--debug) DEBUG=DEBUG ; FAST_LOCKER=("$mydir/fast_lock.sh" --debug) ;;
 
