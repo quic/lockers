@@ -106,7 +106,7 @@ EOF
 
 mypath=$(readlink -e "$0")
 mydir=$(dirname "$mypath")
-locker_dir=$(dirname "$mydir")
+locker_dir=$(dirname "$(dirname "$mydir")")
 
 LOCKER=()
 LOCKER_ARGS=()

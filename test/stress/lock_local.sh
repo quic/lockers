@@ -23,7 +23,7 @@ EOF
 myprog=$(basename "$0")
 mypath=$(readlink -e "$0")
 mydir=$(dirname "$mypath")
-locker_dir=$(dirname "$mydir")
+locker_dir=$(dirname "$(dirname "$mydir")")
 
 LOCKER=("$locker_dir/$myprog")
 while [ $# -gt 0 ] ; do

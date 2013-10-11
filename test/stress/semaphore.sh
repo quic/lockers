@@ -81,7 +81,7 @@ test_ten() { # dir [--stop]
 
 mypath=$(readlink -e "$0")
 mydir=$(dirname "$mypath")
-locker_dir=$(dirname "$mydir")
+locker_dir=$(dirname "$(dirname "$mydir")")
 
 SEMAPHORE=("$locker_dir"/semaphore.sh)
 LOCKER_TESTER=("$mydir"/fast_lock.sh)
