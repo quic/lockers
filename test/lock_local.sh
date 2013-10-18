@@ -5,14 +5,11 @@
 
 MYPROG=$(readlink -f "$0")
 MYDIR=$(dirname "$MYPROG")
+source "$MYDIR"/lib.sh
 source "$MYDIR"/results.sh
 
 out() { OUT=$("$@") ; }
 outerr() { OUT=$("$@" 2>&1) ; }
-
-# Provides another stable PID until killed
-second() { while true ; do sleep 10000 ; done ; }
-kill_wait() { kill $1 ; wait $1 ; }
 
 LOCKER=$MYDIR/../lock_local.sh
 OUTDIR=$MYDIR/out
@@ -21,7 +18,7 @@ LOCK=$OUTDIR/lock_local
 rm -rf "$LOCK" # cleanup any previous runs
 
 first=$$
-second & second=$!
+stable_process & second=$!
 
 out "$LOCKER" lock "$LOCK" $first ; result "Lock by first($first)" "$OUT"
 

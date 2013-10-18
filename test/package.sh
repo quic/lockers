@@ -13,6 +13,9 @@ RESULT=0
 echo ; echo "---- Test fast_lock ----"
 "$MYDIR/fast_lock.sh" || RESULT=$?
 
+echo ; echo "---- Test local_id ----"
+"$MYDIR/local_id.sh" || RESULT=$?
+
 echo ; echo "---- Test lock_local ----"
 "$MYDIR/lock_local.sh" || RESULT=$?
 
