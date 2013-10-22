@@ -3,5 +3,5 @@
 # a library for testing the lockers
 
 # Provides a stable PID until killed
-stable_process() { while true ; do sleep 10000 ; done ; }
+stable_process() { while true ; do sleep 10 ; done ; }
 kill_wait() { kill $1 ; wait $1 ; }
