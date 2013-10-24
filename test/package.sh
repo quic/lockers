@@ -10,19 +10,16 @@ MYDIR=$(dirname "$MYPROG")
 
 RESULT=0
 
-echo ; echo "---- Test fast_lock ----"
-"$MYDIR/fast_lock.sh" || RESULT=$?
+test_file() { # test_file
+    echo ; echo "---- Testing $1 ----"
+    "$MYDIR/$1" || RESULT=$?
+}
 
-echo ; echo "---- Test local_id ----"
-"$MYDIR/local_id.sh" || RESULT=$?
-
-echo ; echo "---- Test lock_local ----"
-"$MYDIR/lock_local.sh" || RESULT=$?
-
-echo ; echo "---- Test lock_grace_checker ----"
-"$MYDIR/lock_grace_checker.sh" || RESULT=$?
-
-echo ; echo "---- Test ssh_id ----"
-"$MYDIR/ssh_id.sh" || RESULT=$?
+test_file fast_lock.sh
+test_file local_id.sh
+test_file lock_local.sh
+test_file grace_lock.sh
+test_file lock_grace_checker.sh
+test_file ssh_id.sh
 
 exit $RESULT
