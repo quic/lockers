@@ -24,14 +24,14 @@ args() { # action needed optional [args]...
     usage "'$func' takes <$needed> [$optional], given ($*)"
 }
 
-is_running() {  # id
+is_running() {  # pid|uid
     [ -z "$1" ] && return 1
-    [ -n "$(id "$1")" ]
+    [ -n "$(pid "$1")" ]
 }
 
-uid() { "${ID_HELPER[@]}" uid "$1" ; } # id > uid
+uid() { "${ID_HELPER[@]}" uid "$1" ; } # pid|uid > uid
 
-id() { # uid > id (or if helper, blank if uid not running)
+pid() { # pid|uid > pid (or if helper, blank if uid not running)
     local pid=$("${ID_HELPER[@]}" pid "$1")
     local uid=$(uid "$pid")
     [ "$uid" = "$1" ] && echo "$pid"
@@ -52,7 +52,7 @@ clean_stale_owner() { # lock
     local owner=$("${FAST_LOCKER[@]}" owner "$lock")
     [ -z "$owner" ] && return
 
-    local id=$(id "$owner")
+    local id=$(pid "$owner")
     [ -n "$id" ] && return
 
     info "recovery needed for $owner"
@@ -61,22 +61,22 @@ clean_stale_owner() { # lock
 
 # ---------- API ------------
 
-fast_lock() { # lock id # => 10 critical error (stop spinning!)
+fast_lock() { # lock pid # => 10 critical error (stop spinning!)
     local lock=$1 uid=$(uid "$2")
     "${FAST_LOCKER[@]}" lock "$lock" "$uid"
 }
 
-lock() { # lock id # => 10 critical error (stop spinning!)
-    args lock "lock id" "" "$@"
-    local lock=$1 id=$2  rtn
+lock() { # lock pid # => 10 critical error (stop spinning!)
+    args lock "lock pid" "" "$@"
+    local lock=$1 pid=$2  rtn
 
     clean_stale_owner "$lock"
-    fast_lock "$lock" "$id" ; rtn=$?
+    fast_lock "$lock" "$pid" ; rtn=$?
     return $rtn
 }
 
-unlock() { # lock id
-    args unlock "lock id" "" "$@"
+unlock() { # lock pid|uid
+    args unlock "lock pid|uid" "" "$@"
     local lock=$1 uid=$(uid "$2")
 
     "${FAST_LOCKER[@]}" unlock "$lock" "$uid"
@@ -84,13 +84,13 @@ unlock() { # lock id
     clean_stale "$lock" &
 }
 
-owner() { # lock > id
+owner() { # lock > pid
     args owner "lock" "" "$@"
-    id "$("${FAST_LOCKER[@]}" owner "$@")"
+    pid "$("${FAST_LOCKER[@]}" owner "$@")"
 }
 
-is_mine() { # lock id
-    args is_mine "lock id" "" "$@"
+is_mine() { # lock pid|uid
+    args is_mine "lock pid|uid" "" "$@"
     local lock=$1 uid=$(uid "$2")
     [ -z "$uid" ] && return 1
     "${FAST_LOCKER[@]}" is_mine "$lock" "$uid"
@@ -100,12 +100,12 @@ usage() { # error_message
     local prog=$(basename "$0")
     cat <<EOF
 
-    usage: $prog lock <lock_path> <id>
-           $prog unlock <lock_path> <id>
+    usage: $prog lock <lock_path> <pid>
+           $prog unlock <lock_path> <pid|uid>
 
-           $prog fast_lock <lock_path> <id>
-           $prog owner <lock_path> > id
-           $prog is_mine <lock_path> id
+           $prog fast_lock <lock_path> <pid>
+           $prog owner <lock_path> > pid
+           $prog is_mine <lock_path> <pid|uid>
 
     A filesystem based lock manager requiring a pid representing
     the lock holder.
