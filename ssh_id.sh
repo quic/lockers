@@ -5,63 +5,81 @@
 
 qerr() { "$@" 2>/dev/null ; } # execute a cmd and quiet the stderr
 
-is_running() {  # uid
-   [ -z "$1" ] && return 1
-   [ -n "$(pid "$1")" ]
+is_host_compatible() { # host
+    local junk rtn
+    junk=$(ssh_uid "$1") ; rtn=$?
+    [ $rtn -eq 10 ] || [ $rtn -eq 11 ] && return $rtn
+    return 0
 }
 
+ssh_uid() { # host pid > uid (if running)
+    local host=$1 pid=$2
+    [ -z "$host" ] && return 1
+
+    qerr ssh -o StrictHostKeyChecking=yes \
+             -o PasswordAuthentication=no "$host" \
+        hostname --fqdn ';'\
+        awk "'\$1 == \"btime\" {print \$2}'" /proc/stat ';'\
+        awk "'{print \$22}'" /proc/$pid/stat |\
+        {
+            read fqdn ; read boot ; read starttime
+            [ -z "$fqdn" ] && return 10
+            [ -z "$boot" ] && return 11
+
+            # missing arg, but allow ssh test anyway for is_host_compatible
+            [ -z "$pid" ] && return 2
+            [ -z "$starttime" ] && return 0
+            echo "$fqdn:$pid:$starttime:$boot"
+        }
+}
+
+is_stale() {  # uid
+   local uid=$1
+   [ -z "$uid" ] && return 1
+
+   local host=$(host "$uid") pid=$(pid "$uid")
+   [ -n "$host" ] || return 1
+
+   local ssh_uid
+   ssh_uid=$(ssh_uid "$host" "$pid") || return 1
+   [ -z "$ssh_uid" ] && return 0 # no starttime
+   [ "$host" == "$(host "$ssh_uid")" ] || return 1
+   [ "$ssh_uid" != "$uid" ] # different boottime
+}
+
+host() { echo "$1" | awk -F: '{print $1}' ; } # uid > host
+
+pid() { echo "$1" | awk -F: '{print $2}' ; } # uid > pid
+
 uid() { # pid > uid
-    local run_data=$(qerr awk '{print $4 ":" $22}' /proc/$1/stat) # ppid=4 starttime=22
-    [ -z "$run_data" ] && return 1 # no longer running
+    local starttime=$(qerr awk '{print $22}' /proc/$1/stat) # starttime=22
+    [ -z "$starttime" ] && return 1 # no longer running
     local boot=$(qerr awk '$1 == "btime" {print $2}' /proc/stat)
     local host=$(hostname --fqdn)
 
-    echo "$host:$1:$run_data:$boot"
-}
-
-ssh_uid() { # host pid > uid
-                          # ppid=4 starttime=22
-    qerr ssh "$1" awk "'{print \$4 \":\" \$22}'" /proc/$2/stat ';'\
-               hostname --fqdn ';'\
-               awk "'\$1 == \"btime\" {print \$2}'" /proc/stat |\
-    {
-        read run_data
-        read host
-        read boot
-        echo "$host:$2:$run_data:$boot"
-    }
-}
-
-pid() { # uid > pid (or blank if pid not running)
-    local host=$(host "$1")
-    [ -z "$host" ] && return 1
-    local pid=$(echo "$1" | awk -F: '{print $2}')
-    local uid=$(ssh_uid "$host" "$pid")
-    [ "$uid" = "$1" ] && echo "$pid"
-}
-
-host() { # uid > host
-    echo "$1" | awk -F: '{print $1}'
+    echo "$host:$1:$starttime:$boot"
 }
 
 usage() { # error_message
     local prog=$(basename "$0")
     cat <<EOF
 
-    usage: $prog is_running <uid>
+    usage: $prog is_stale <uid>
            $prog uid <pid> > <uid>  (must be run on host)
-           $prog ssh_uid <host> <pid> > <uid>
-           $prog pid <uid> > pid (or blank if pid not running)
+
+           $prog pid <uid> > pid
            $prog host <uid> > host
 
+           $prog is_host_compatible host
+
     A remote host process id/uid manipulator and runchecker using ssh.
-    Unlike a pid alone, this gives a safe way to identify currently running
-    processes and to compare them with uids against no longer running
-    processes even once the pids have wrapped around.  This safety is
-    achieved by including the following in the uid: the host, pid,
-    parent pid, start time, and boot time.  Naturally, this only works if
-    the running user can ssh freely into any ssh host associated with the
-    uid using the hostname which the host reports.
+    A uid is used to identify currently running processes and to compare
+    them with no longer running processes.  The following is included in
+    the uid: hostname(fqdn), pid, start time, and boot time.  Staleness
+    can only be confirmed when the current user can ssh freely into any
+    ssh host associated with the uid using the hostname(fqdn) which the
+    host reports.  Use is_host_compatible to manually check a user and
+    host's ssh setup for compatability with this locker.
 
 EOF
     [ $# -gt 0 ] && echo "Error - $@" >&2
