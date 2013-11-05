@@ -26,13 +26,6 @@ args() { # action needed optional [args]...
     usage "'$func' takes <$needed> [$optional], given ($*)"
 }
 
-
-# See if the id is running
-is_running() {  # id
-    [ -z "$1" ] && return 1
-    "${STALE_CHECKER[@]}" "$1"
-}
-
 # See if the id is stale
 is_stale() {  # id
     [ -z "$1" ] && return 0
@@ -214,23 +207,24 @@ usage() { # error_message
 
     seconds   The amount of time a lock component needs to be untouched
               before even considering checking it for staleness.  To
-              prevent multiple checkers, set this to longer then the worst
-              case check time.  The longest stale recovery time is the sum
-              of the worst case check time and twice this delay.
+              prevent multiple checkers, set this to longer then the
+              worst case check time.  The longest stale recovery time is
+              the sum of the worst case check time and twice this delay.
 
-   This locker is meant to be used with expensive stale checks.  It therefore
-   has a strategy aimed at reducing these checks.  Stale checks are performed
-   by the checking process which gets there first after a grace period.
-   Additionally, each checker has an random delay after its grace period
-   (bounded by the grace period), before checking.  The random delay
-   drastically decreases the chance of redundant stale checks.
+   This locker is meant to be used with expensive stale checks.  It
+   therefore has a strategy aimed at reducing these checks.  Stale checks
+   are performed by the checking process which gets there first after a
+   grace period.  Additionally, each checker has an random delay after
+   its grace period (bounded by the grace period), before checking.  The
+   random delay drastically decreases the chance of redundant stale
+   checks.
 
    Due to the sparse stale checks, it is OK to use the "lock" command for
    spinning checks.  However, the "lock" command is unlikely to succeed
    the first time when there is an actual stale lock.  If success is
    required in the presence of only a stale lock, use "lock_check".  Be
-   aware of the associated stale check cost of using "lock_check",
-   and don't use "lock_check" for spinning.
+   aware of the associated stale check cost of using "lock_check", and
+   don't use "lock_check" for spinning.
 
 EOF
     [ $# -gt 0 ] && echo "Error - $@" >&2
@@ -244,6 +238,7 @@ FAST_LOCKER=("$mydir/fast_lock.sh")
 STALE_CHECKER=()
 while [ $# -gt 0 ] ; do
     case "$1" in
+        -u|-h|--help) usage ;;
         -di|--info) DEBUG=INFO ; FAST_LOCKER+=("$1") ;;
         -d|--debug) DEBUG=DEBUG ; FAST_LOCKER+=("$1") ;;
 
