@@ -16,6 +16,7 @@ test_file() { # test_file
 }
 
 test_file fast_lock.sh
+test_file check_lock.sh
 test_file local_id.sh
 test_file lock_local.sh
 test_file grace_lock.sh
