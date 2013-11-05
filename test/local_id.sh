@@ -19,12 +19,10 @@ out=$(echo "$uid" | grep $opid) ; result "orignal pid $opid) in uid($uid)" "$out
 pid=$("$ID" pid "$uid")
 [ "$pid" = "$opid" ] ; result "pid($pid) == orignal pid ($opid)" "$pid"
 
-"$ID" is_running "$uid" ; result "is_running live uid($uid)"
 ! "$ID" is_stale "$uid" ; result "is_stale live uid($uid)"
 
 kill_wait $opid > /dev/null 2>&1
 
-! "$ID" is_running "$uid" ; result "is_running dead uid($uid)"
 "$ID" is_stale "$uid" ; result "is_stale dead uid($uid)"
 
 pid=$("$ID" pid "$uid")

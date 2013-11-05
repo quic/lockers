@@ -5,11 +5,6 @@
 
 q() { "$@" 2>/dev/null ; } # execute a cmd and quiet the stderr
 
-is_running() {  # uid
-   [ -z "$1" ] && return 1
-   [ -n "$(pid "$1")" ]
-}
-
 is_stale() {  # uid
    [ -n "$1" ] || return 0
    [ -z "$(pid "$1")" ]
@@ -34,7 +29,6 @@ usage() { # error_message
     cat <<EOF
 
     usage: $prog is_stale <uid>
-           $prog is_running <uid>   (DEPRECATED)
            $prog uid <pid> > <uid>
            $prog pid <uid> > pid (or blank if pid not running)
 
