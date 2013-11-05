@@ -10,6 +10,11 @@ is_running() {  # uid
    [ -n "$(pid "$1")" ]
 }
 
+is_stale() {  # uid
+   [ -n "$1" ] || return 0
+   [ -z "$(pid "$1")" ]
+}
+
 uid() { # pid > uid
     local run_data=$(q awk '{print $22}' /proc/$1/stat) # starttime=22
     [ -z "$run_data" ] && return 1 # no longer running
@@ -28,7 +33,8 @@ usage() { # error_message
     local prog=$(basename "$0")
     cat <<EOF
 
-    usage: $prog is_running <uid>
+    usage: $prog is_stale <uid>
+           $prog is_running <uid>   (DEPRECATED)
            $prog uid <pid> > <uid>
            $prog pid <uid> > pid (or blank if pid not running)
 
