@@ -1,0 +1,82 @@
+The lockers contain various generic locking mechanism and building blocks.
+
+fast_lock.sh
+------------
+
+Much of the functionality of these lockers depends on the fundamental
+fast_lock.sh building block.  The fast_lock.sh script mimics the
+traditional voluntary file locking mechanism, but it uses lock directories
+instead of lock files.  By using several layers of directories to construct
+its voluntary locks, the fast_lock.sh script makes it possible to recover
+from stale locks in a safe fashion.
+
+
+Recovery Policies
+-----------------
+
+Although safe recovery of stale locks is possible with fast_lock.sh, this
+is only true if a way to identify such stale locks is possible, fast_lock.sh
+cannot do this on its own.  There are locker helpers in this directory
+built upon fast_lock.sh which implement different staleness checking policies.
+These helpers are named for the policy they use, <policy>_lock.sh.  These
+helpers don't actually do any staleness checking themselves, they rely on
+a pluggable program to do so.  These helpers only determine when to query
+the staleness checker, and they use fast_lock.sh to recover once
+staleness is identified.
+
+Example of staleness policy locker helpers:
+
+check_lock.sh:  Assumes staleness check is cheap, always checks for staleness.
+grace_lock.sh:  Assumes staleness check is expensive, checks for staleness
+                after a grace period from the lock acquisition and the
+                last check.
+
+
+Staleness Checkers
+------------------
+
+The <policy>_lock.sh scripts can implement a staleness checking policy, but
+the need helpers to do the actual staleness checking.  Checking for
+staleness requires a basic understanding of the ids used for locking.  The
+<type>_id.sh scripts help implement unique ids within a certain context,
+along with a way to check these ids for staleness.  Some of the helpers are:
+
+local_id.sh:  Uses a process pid as a basis along with more data to uniquely
+              identify a process.  This id helper expects a single host as a
+              context.
+
+ssh_id.sh:  Uses a process pid and the process' hostname as a basis along
+            with more data to uniquely identify a process in a cluster.
+            This id helper can thus be used across machines in a cluster
+            as long as automated ssh access to each machine is setup.
+
+
+Higher Level Lockers
+--------------------
+
+Although it is possible to build a custom locker using the lower level locker
+building blocks mentioned up to this point, there are some pre-built higher
+level lockers meant for more general consumption.  These higher level lockers
+generally combine a staleness policy helper with a staleness checker to
+create a simple to use locker.  The following higher level lockers are
+currently recommended for use:
+
+lock_local.sh:  Combines check_lock.sh with local_id.sh.  Meant for use on a
+                single machine.
+lock_ssh.sh:  Combines grace_lock.sh with ssh_id.sh.  Meant for use on a
+              cluster via a shared filesystem.
+
+
+Semaphores
+----------
+
+This directory also has a semaphore implementation: semaphore.sh.  This
+semaphore defaults to using lock_local.sh as its internal locker
+implementation.  However, it is also capable of using an alternate locker
+implementation.
+
+Copyright and License
+---------------------
+
+Copyright (c) 2013, Qualcomm Innovation Center, Inc. All rights reserved.
+SPDX-License-Identifier: BSD-3-Clause
