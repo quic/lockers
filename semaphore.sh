@@ -112,7 +112,7 @@ slot() { # semaphore [id] > slot
 
 usage() { # error_message
     local prog=$(basename "$0")
-    cat <<EOF
+    cat >&2 <<EOF
 
     usage: $prog <locker> acquire <semaphore_path> max [id]
            $prog <locker> fast_acquire <semaphore_path> max [id]

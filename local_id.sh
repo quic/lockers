@@ -26,7 +26,7 @@ pid() { # uid > pid (or blank if pid not running)
 
 usage() { # error_message
     local prog=$(basename "$0")
-    cat <<EOF
+    cat >&2 <<EOF
 
     usage: $prog is_stale <uid>
            $prog uid <pid> > <uid>

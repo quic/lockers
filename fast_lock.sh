@@ -169,7 +169,7 @@ is_mine() { # lock id
 
 usage() { # error_message
     local prog=$(basename "$0")
-    cat <<EOF
+    cat >&2 <<EOF
 
     usage: $prog lock <lock_path> <id>
            $prog unlock <lock_path> <id>

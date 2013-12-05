@@ -10,7 +10,7 @@ compatible() { "${ID_HELPER[@]}" is_host_compatible "$1" ; } # hsot
 
 usage() { # error_message
     local prog=$(basename "$0")
-    cat <<EOF
+    cat >&2 <<EOF
 
     usage: $prog lock <lock_path> <pid> [seconds]
            $prog lock_check <lock_path> <pid>

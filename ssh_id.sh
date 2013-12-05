@@ -62,7 +62,7 @@ uid() { # pid > uid
 
 usage() { # error_message
     local prog=$(basename "$0")
-    cat <<EOF
+    cat >&2 <<EOF
 
     usage: $prog is_stale <uid>
            $prog uid <pid> > <uid>  (must be run on host)

@@ -8,7 +8,7 @@ pid() { "${ID_HELPER[@]}" pid "$1" ; } # pid|uid > pid
 
 usage() { # error_message
     local prog=$(basename "$0")
-    cat <<EOF
+    cat >&2 <<EOF
 
     usage: $prog -u|-h|--help
            $prog lock <lock_path> <pid>
