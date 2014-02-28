@@ -64,7 +64,19 @@ result "Dead lock by second($second), can lock_check by first($first)" "$OUT"
 
 out "$LOCKER" false unlock "$LOCK" $first
 
-[ $RESULT -eq 0 ] && rm -rf "$LOCK"
+
+out "$LOCKER" true lock "$LOCK" $first 1
+sleep 2 # make first stale
+out "$LOCKER" true lock "$LOCK" $second 1
+sleep 2 # allow cleanup
+OUT=$(ls "$LOCK" 2> /dev/null)
+! [ -e "$LOCK" ]
+result "Stale lock was cleaned up by lock attempt by another" "$OUT"
+
+
+if [ "$1" != "--keep" ] || [ $RESULT -eq 0 ] ; then
+    rm -rf "$LOCK"
+fi
 rmdir "$OUTDIR"
 
 exit $RESULT

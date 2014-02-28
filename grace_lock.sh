@@ -44,6 +44,7 @@ clean_if_stale() { # lock uid
     # could easily happen), it would prevent the lock from ever
     # recovering if it became stale.
     if is_stale "$uid" ; then
+        q rmdir "$lock/in_use/$uid" "$lock/in_use"
         "${FAST_LOCKER[@]}" stale_ids "$lock" "$uid"
         info "cleaned stale id $uid"
     fi
@@ -74,8 +75,9 @@ ids_in_use() { # lock > ids...
             [ "$uida" = "$uidm" ] || continue
             inuse=true
         done
-        [ -z "$inuse" ] && q rmdir "$uidm"
+        [ -z "$inuse" ] && q rmdir "$lock/in_use/$uidm"
     done
+    q rmdir "$lock/in_use" "$lock"
 
     # Not in before and after? -> not yet or no longer in use
     for uidb in $before ; do
