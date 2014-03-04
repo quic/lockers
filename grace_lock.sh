@@ -131,7 +131,7 @@ ponder_clean() { # lock [stale_seconds]
 
 # ---------- API ------------
 
-fast_lock() { # lock id # => 10 critical error (stop spinning!)
+lock_nocheck() { # lock id # => 10 critical error (stop spinning!)
     "${FAST_LOCKER[@]}" lock "$@"
 }
 
@@ -139,7 +139,7 @@ lock() { # lock id [stale_seconds] # => 10 critical error (stop spinning!)
     args lock "lock id" "stale_seconds" "$@"
     local lock=$1 id=$2  rtn ; shift 2
 
-    fast_lock "$lock" "$id" ; rtn=$?
+    lock_nocheck "$lock" "$id" ; rtn=$?
     q rmdir "$lock/in_use/$id" "$lock"/in_use "$lock"
     q-shell-init ponder_clean "$lock" "$@" &
     return $rtn
@@ -149,7 +149,7 @@ lock_check() { # lock id # => 10 critical error
     args lock_check "lock id" "" "$@"
     local lock=$1 id=$2  rtn
 
-    fast_lock "$lock" "$id" ; rtn=$?
+    lock_nocheck "$lock" "$id" ; rtn=$?
     [ $rtn -eq 0 -o $rtn -ge 10 ] && return $rtn
 
     q rmdir "$lock/in_use/$id" "$lock"/in_use "$lock"
@@ -159,7 +159,7 @@ lock_check() { # lock id # => 10 critical error
 
     q-shell-init ponder_clean "$lock" &
 
-    fast_lock "$lock" "$id"
+    lock_nocheck "$lock" "$id"
 }
 
 unlock() { # lock id [stale_seconds]
@@ -187,10 +187,11 @@ usage() { # error_message
     cat >&2 <<EOF
 
     usage: $prog <stale_checker> lock <lock_path> <id> [seconds]
+           $prog fast_lock <lock_path> <id>  # DEPRECATED: use lock_nocheck
+           $prog lock_nocheck <lock_path> <id>
            $prog <stale_checker> lock_check <lock_path> <id>
            $prog <stale_checker> unlock <lock_path> <id> [seconds]
 
-           $prog fast_lock <lock_path> <id>
            $prog owner <lock_path> > id
            $prog is_mine <lock_path> id
 
@@ -246,7 +247,7 @@ while [ $# -gt 0 ] ; do
 
         -s) STALE_CHECKER+=("$2") ; shift ;;
 
-        fast_lock|owner|is_mine) STALE_CHECKER=(true) ; break ;;
+        lock_nocheck|fast_lock|owner|is_mine) STALE_CHECKER=(true) ; break ;;
 
         *)  [ -n "$STALE_CHECKER" ] && break
             STALE_CHECKER=("$1")
@@ -257,5 +258,7 @@ done
 [ -z "$STALE_CHECKER" ] && usage "you must specify a stale checker"
 
 [ $# -lt 1 ] && usage "you must specify a stale checker and an action"
+action=$1 ; shift
+[ "$action" = "fast_lock" ] && action=lock_nocheck
 
-"$@"
+"$action" "$@"
