@@ -49,9 +49,12 @@ out "$LOCKER" false unlock "$LOCK" $second
 result "Unlock by second($second)" "$OUT"
 
 
+# Stale locks
+
 "$LOCKER" false lock "$LOCK" $second
 sleep 2 # make the second stale
-out "$LOCKER" true lock "$LOCK" $first 1 # starts cleanup after lock attempt
+# start cleanup after lock attempt
+out "$LOCKER" test -s $second -s -eq lock "$LOCK" $first 1
 sleep 1
 out "$LOCKER" false lock "$LOCK" $first 1
 result "Dead lock by second($second), can lock by first($first)" "$OUT"
@@ -59,15 +62,13 @@ result "Dead lock by second($second), can lock by first($first)" "$OUT"
 out "$LOCKER" false unlock "$LOCK" $first
 "$LOCKER" false lock "$LOCK" $second
 sleep 2 # make the second stale
-out "$LOCKER" true lock_check "$LOCK" $first
+out "$LOCKER" test -s $second -s -eq lock_check "$LOCK" $first
 result "Dead lock by second($second), can lock_check by first($first)" "$OUT"
-
 out "$LOCKER" false unlock "$LOCK" $first
 
-
-out "$LOCKER" true lock "$LOCK" $first 1
+out "$LOCKER" false lock "$LOCK" $first 1
 sleep 2 # make first stale
-out "$LOCKER" true lock "$LOCK" $second 1
+out "$LOCKER" test -s $first -s -eq lock "$LOCK" $second 1
 sleep 2 # allow cleanup
 OUT=$(ls "$LOCK" 2> /dev/null)
 ! [ -e "$LOCK" ]
