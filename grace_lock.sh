@@ -92,11 +92,11 @@ ids_in_use() { # lock > ids...
 }
 
 ids_need_check() { # lock [stale_seconds] > potentially_stale_ids
-    local lock=$1 secs=$2  use
+    local lock=$1 secs=$2  use stale=()
     local ids=$(ids_in_use "$lock")
     debug "ids_in_use: $ids"
 
-    local stale=('!' -newermt "$(newer_seconds "$secs")")
+    [ -n "$secs" ] && stale=('!' -newermt "$(newer_seconds "$secs")")
     for use in $(q find "$lock/in_use" -type d "${stale[@]}") ; do
         [ "$use" = "$lock/in_use" ] && continue
         basename "$use"

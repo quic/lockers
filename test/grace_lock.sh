@@ -74,6 +74,13 @@ OUT=$(ls "$LOCK" 2> /dev/null)
 ! [ -e "$LOCK" ]
 result "Stale lock was cleaned up by lock attempt by another" "$OUT"
 
+out "$LOCKER" false lock "$LOCK" $first
+out "$LOCKER" test -s $first -s -eq lock "$LOCK" $second
+sleep 1 # allow cleanup
+OUT=$(ls "$LOCK" 2> /dev/null)
+! [ -e "$LOCK" ]
+result "Stale lock (no secs) was cleaned up by lock attempt by another" "$OUT"
+
 
 if [ "$1" != "--keep" ] || [ $RESULT -eq 0 ] ; then
     rm -rf "$LOCK"
