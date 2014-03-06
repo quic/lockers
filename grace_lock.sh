@@ -47,6 +47,8 @@ clean_if_stale() { # lock uid
         q rmdir "$lock/in_use/$uid" "$lock/in_use"
         "${FAST_LOCKER[@]}" stale_ids "$lock" "$uid"
         info "cleaned stale id $uid"
+    else
+        debug "id not stale: $uid"
     fi
 }
 
@@ -59,23 +61,23 @@ tracked_ids() { # lock > ids...
 }
 
 ids_in_use() { # lock > ids...
-    local lock=$1 uidb uida uidm
+    local lock=$1 uidb uida uidt
 
     local before=$("${FAST_LOCKER[@]}" ids_in_use "$lock")
     local tracked=$(tracked_ids "$lock")
     local after=$("${FAST_LOCKER[@]}" ids_in_use "$lock")
     debug "ids_in_use before: $before"
-    debug "ids_in_use mine: $mine"
+    debug "ids_in_use tracked: $tracked"
     debug "ids_in_use after: $after"
 
     # In tracked but not after? -> no longer in use
-    for uidm in $tracked ; do
+    for uidt in $tracked ; do
         local inuse=''
         for uida in $after ; do
-            [ "$uida" = "$uidm" ] || continue
+            [ "$uida" = "$uidt" ] || continue
             inuse=true
         done
-        [ -z "$inuse" ] && q rmdir "$lock/in_use/$uidm"
+        [ -z "$inuse" ] && q rmdir "$lock/in_use/$uidt"
     done
     q rmdir "$lock/in_use" "$lock"
 
@@ -92,6 +94,7 @@ ids_in_use() { # lock > ids...
 ids_need_check() { # lock [stale_seconds] > potentially_stale_ids
     local lock=$1 secs=$2  use
     local ids=$(ids_in_use "$lock")
+    debug "ids_in_use: $ids"
 
     local stale=('!' -newermt "$(newer_seconds "$secs")")
     for use in $(q find "$lock/in_use" -type d "${stale[@]}") ; do
