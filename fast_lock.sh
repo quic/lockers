@@ -102,8 +102,7 @@ create_marker() { # lock uid > [markdir] (if success)
 ids_in_use() { # lock > ids...
     args ids_in_use "lock" "" "$@"
     local lock=$1
-    owner "$lock"
-    marker_ids "$lock"
+    (owner "$lock" ; marker_ids "$lock") | sort --unique
 }
 
 stale_ids() { # lock [ids]...
