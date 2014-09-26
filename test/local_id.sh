@@ -17,7 +17,7 @@ uid=$("$ID" uid $opid)
 out=$(echo "$uid" | grep $opid) ; result "orignal pid $opid) in uid($uid)" "$out"
 
 pid=$("$ID" pid "$uid")
-[ "$pid" = "$opid" ] ; result "pid($pid) == orignal pid ($opid)" "$pid"
+result_out "pid($pid) == orignal pid ($opid)" "$opid" "$pid"
 
 ! "$ID" is_stale "$uid" ; result "is_stale live uid($uid)"
 
@@ -26,7 +26,7 @@ kill_wait $opid > /dev/null 2>&1
 "$ID" is_stale "$uid" ; result "is_stale dead uid($uid)"
 
 pid=$("$ID" pid "$uid")
-[ -z "$pid" ] ; result "blank pid when dead" "$pid"
+result_out "blank pid when dead" "" "$pid"
 
 
 exit $RESULT

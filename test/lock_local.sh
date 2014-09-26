@@ -23,7 +23,7 @@ stable_process & second=$!
 out "$LOCKER" lock "$LOCK" $first ; result "Lock by first($first)" "$OUT"
 
 out "$LOCKER" owner "$LOCK"
-[ "$OUT" =  "$first" ] ; result "Owner should be first($first)" "$OUT"
+result_out "Owner should be first($first)" "$first" "$OUT"
 
 "$LOCKER" is_mine "$LOCK" $first ; result "first($first) is_mine" "$OUT"
 

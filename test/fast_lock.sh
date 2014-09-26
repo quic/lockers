@@ -19,7 +19,7 @@ rm -rf "$LOCK" # cleanup any previous runs
 out "$LOCKER" lock "$LOCK" first ; result "Lock by first" "$OUT"
 
 out "$LOCKER" owner "$LOCK"
-[ "$OUT" =  "first" ] ; result "Owner should be first" "$OUT"
+result_out "Owner should be first" "first" "$OUT"
 
 "$LOCKER" is_mine "$LOCK" first ; result "first is_mine" "$OUT"
 
@@ -30,15 +30,15 @@ out "$LOCKER" owner "$LOCK"
 ! outerr "$LOCKER" lock "$LOCK" second ; result "Cannot lock by second" "$OUT"
 
 out "$LOCKER" ids_in_use "$LOCK" ;
-[ "$OUT" =  "first" ] ; result "first is ids_in_use" "$OUT"
+result_out "first is ids_in_use" "first" "$OUT"
 
 mkdir -p "$LOCK/markers/second/owner"
 out "$LOCKER" ids_in_use "$LOCK" ; OUT=$(echo $OUT)
-[ "$OUT" =  "first second" ] ; result "second now in ids_in_use" "$OUT"
+result_out "second now in ids_in_use" "first second" "$OUT"
 
 "$LOCKER" stale_ids "$LOCK"
 out "$LOCKER" ids_in_use "$LOCK" ;
-[ "$OUT" =  "first" ] ; result "stale_ids cleaned second" "$OUT"
+result_out "stale_ids cleaned second" "first" "$OUT"
 
 out "$LOCKER" unlock "$LOCK" first ; result "Unlock by first" "$OUT"
 

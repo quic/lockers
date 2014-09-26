@@ -23,11 +23,11 @@ uid=$("$ID" uid $opid)
 out=$(echo "$uid" | grep $opid)
 result "original pid($opid) in uid($uid)" "$out"
 
-sshuid=$("$ID" ssh_uid "$myhost" $opid) ; [ "$uid" = "$sshuid" ]
-result "Internal ssh_uid($sshuid) == uid($uid)" "$sshuid"
+sshuid=$("$ID" ssh_uid "$myhost" $opid)
+result_out "Internal ssh_uid($sshuid) == uid($uid)" "$uid" "$sshuid"
 
-pid=$("$ID" pid "$uid") ; [ "$pid" = "$opid" ]
-result "pid($pid) == original pid($opid)" "$pid"
+pid=$("$ID" pid "$uid")
+result_out "pid($pid) == original pid($opid)" "$opid" "$pid"
 
 ! "$ID" is_stale "$uid"
 result "Not is_stale live uid($uid)"
@@ -52,8 +52,7 @@ if [ "$1" = "--full" ] ; then # not good for automated tests.
 fi
 
 host=$("$ID" host "$uid")
-[ "$host" = "$myhost" ]
-result "host($uid) == $myhost" "$host"
+result_out "host($uid) == $myhost" "$myhost" "$host"
 
 kill_wait $opid > /dev/null 2>&1
 
