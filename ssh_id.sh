@@ -5,28 +5,36 @@
 
 qerr() { "$@" 2>/dev/null ; } # execute a cmd and quiet the stderr
 
+SSH_LOGIN=(ssh -o StrictHostKeyChecking=yes -o PasswordAuthentication=no)
+
+ERR_HOST_INCOMPATIBLE=10
+
+fqdn() { "${SSH_LOGIN[@]}" "$host" hostname --fqdn ; } # host
+
 is_host_compatible() { # host
-    local junk rtn
-    junk=$(ssh_uid "$1") ; rtn=$?
-    [ $rtn -eq 10 ] || [ $rtn -eq 11 ] && return $rtn
-    return 0
+    local host=$1
+    local fqdn=$(fqdn "$host")
+    [ -z "$fqdn" ] && return $ERR_HOST_INCOMPATIBLE
+    [ "$host" = "$fqdn" ] && return
+    [ "$fqdn" = "$(fqdn "$fqdn")" ] || return $ERR_HOST_INCOMPATIBLE
 }
 
 ssh_uid() { # host pid > uid (if running)
     local host=$1 pid=$2
     [ -z "$host" ] && return 1
 
-    qerr ssh -o StrictHostKeyChecking=yes \
-             -o PasswordAuthentication=no "$host" \
+    qerr "${SSH_LOGIN[@]}" "$host"\
         hostname --fqdn ';'\
         awk "'\$1 == \"btime\" {print \$2}'" /proc/stat ';'\
         awk "'{print \$22}'" /proc/$pid/stat |\
         {
             read fqdn ; read boot ; read starttime
-            [ -z "$fqdn" ] && return 10
+            [ -z "$fqdn" ] && return $ERR_HOST_INCOMPATIBLE
             [ -z "$boot" ] && return 11
 
             # missing arg, but allow ssh test anyway for is_host_compatible
+            # (this may no longer make sense since we no longer call this
+            #  from is_host_compatible)
             [ -z "$pid" ] && return 2
             [ -z "$starttime" ] && return 0
             echo "$fqdn:$pid:$starttime:$boot"
