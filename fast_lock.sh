@@ -50,6 +50,9 @@ args() { # action needed optional [args]...
     usage "'$func' takes <$needed> [$optional], given ($*)"
 }
 
+# paths... > basenames... (one line each)
+basenames() { local p ; for p in "$@" ; do basename "$p" ; done ; }
+
 # ---------- markers are potential locks, not yet owners ----------
 
 delete_markdirs() { # lock uid
@@ -63,26 +66,18 @@ delete_marker() { # lock uid
     delete_markdirs "$lock" "$uid"
 }
 
-marker_ids() { # lock > markerids_in_use
-    local lock=$1 m
-    for m in "$lock/markers"/* ; do
-        [ "$m" = "$lock/markers"/'*' ] && continue
-        basename "$m"
-    done
-}
+# lock > markerids_in_use
+marker_ids() { ( shopt -s nullglob ; basenames "$1/markers"/* ) }
 
 clean_markers() { # lock
-    local lock=$1  m ; shift
-    for m in "$lock/markers"/* ; do
-        [ "$m" = "$lock/markers"/'*' ] && continue
-        if [ -d "$m" ] ; then
-            sleep 2
-            # deleting marker dirs without a marker can cause really
-            # slow creates to fail (oh well, they will have to try
-            # again, locking is a privellege not a right).  This helps
-            # remove stale dirs without a marker.
-            delete_markdirs "$lock" "$(basename "$m")"
-        fi
+    local lock=$1  mid ; shift
+    for mid in $(marker_ids "$lock") ; do
+        sleep 2
+        # deleting marker dirs without a marker can cause really
+        # slow creates to fail (oh well, they will have to try
+        # again, locking is a privellege not a right).  This helps
+        # remove stale dirs without a marker.
+        delete_markdirs "$lock" "$mid"
     done
     q rmdir "$lock"
 }
@@ -153,10 +148,7 @@ unlock() { # lock id
 
 owner() { # lock > id
     args owner "lock" "" "$@"
-    for owner in "$1"/owner/* ; do
-         [ "$owner" = "$1"'/owner/*' ] && continue
-         basename "$owner"
-    done
+    ( shopt -s nullglob ; basenames "$1"/owner/* )
 }
 
 is_mine() { # lock id
