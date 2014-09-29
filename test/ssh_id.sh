@@ -59,7 +59,7 @@ result_out "is_stale notifier" \
 FQDN Missmatch" "$notification"
 
 if [ "$1" = "--full" ] ; then # not good for automated tests.
-    # Takes about 20s to time out,
+    # Can take upwards to 2mins to time out
     uhost_uid=$(echo "$uid"|sed -e 's/[^:]*:/unknown:/')
     ! "$ID" is_stale "$uhost_uid"
     result "Not is_stale altered unknown_uid($uhost_uid)"
