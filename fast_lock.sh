@@ -70,13 +70,16 @@ delete_marker() { # lock uid
 marker_ids() { ( shopt -s nullglob ; basenames "$1/markers"/* ) }
 
 clean_markers() { # lock
-    local lock=$1  mid ; shift
-    for mid in $(marker_ids "$lock") ; do
-        sleep 2
-        # deleting marker dirs without a marker can cause really
-        # slow creates to fail (oh well, they will have to try
-        # again, locking is a privellege not a right).  This helps
-        # remove stale dirs without a marker.
+    local lock=$1 mids
+    mids=($(marker_ids "$lock"))
+    [ -z "$mids" ] && return
+    sleep 2
+    # deleting marker dirs without a marker can cause really
+    # slow creates to fail (oh well, they will have to try
+    # again, locking is a privellege not a right).  This helps
+    # remove stale dirs without a marker.
+    local mid
+    for mid in "${mids[@]}" ; do
         delete_markdirs "$lock" "$mid"
     done
     q rmdir "$lock"
