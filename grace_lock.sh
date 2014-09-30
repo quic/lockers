@@ -45,7 +45,7 @@ clean_if_stale() { # lock uid
     # recovering if it became stale.
     if is_stale "$uid" ; then
         q rmdir "$lock/in_use/$uid" "$lock/in_use"
-        "${FAST_LOCKER[@]}" stale_ids "$lock" "$uid"
+        "${FAST_LOCKER[@]}" clean_stale_ids "$lock" "$uid"
         info "cleaned stale id $uid"
     else
         debug "id not stale: $uid"

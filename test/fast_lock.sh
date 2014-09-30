@@ -36,9 +36,9 @@ mkdir -p "$LOCK/markers/second/owner"
 out "$LOCKER" ids_in_use "$LOCK" ; OUT=$(echo $OUT)
 result_out "second now in ids_in_use" "first second" "$OUT"
 
-"$LOCKER" stale_ids "$LOCK"
+"$LOCKER" clean_stale_ids "$LOCK"
 out "$LOCKER" ids_in_use "$LOCK" ;
-result_out "stale_ids cleaned second" "first" "$OUT"
+result_out "clean_stale_ids cleaned second" "first" "$OUT"
 
 out "$LOCKER" unlock "$LOCK" first ; result "Unlock by first" "$OUT"
 

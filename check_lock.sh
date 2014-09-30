@@ -31,7 +31,7 @@ clean_stale() { # lock
          is_stale "$id" || continue
          stale+=$id
     done
-    [ -n "${stale[*]}" ] && "${FAST_LOCKER[@]}" stale_ids "$lock" "${stale[@]}"
+    [ -n "${stale[*]}" ] && "${FAST_LOCKER[@]}" clean_stale_ids "$lock" "${stale[@]}"
 }
 
 clean_stale_owner() { # lock
@@ -42,7 +42,7 @@ clean_stale_owner() { # lock
     is_stale "$owner" || return
 
     info "recovery needed for $owner"
-    "${FAST_LOCKER[@]}" stale_ids "$lock" "$owner"
+    "${FAST_LOCKER[@]}" clean_stale_ids "$lock" "$owner"
 }
 
 # ---------- API ------------

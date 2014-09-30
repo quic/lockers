@@ -103,8 +103,8 @@ ids_in_use() { # lock > ids...
     (owner "$lock" ; marker_ids "$lock") | sort --unique
 }
 
-stale_ids() { # lock [ids]...
-    args stale_ids "lock" "[ids]" "$@"
+clean_stale_ids() { # lock [ids]...
+    args clean_stale_ids "lock" "[ids]" "$@"
     local lock=$1 uid ; shift
     for uid in "$@" ; do
         debug "cleaning stale id $uid"
@@ -170,9 +170,10 @@ usage() { # error_message
 
            $prog owner <lock_path> > id
            $prog is_mine <lock_path> id
-
            $prog ids_in_use <lock_path> > ids
-           $prog stale_ids <lock_path> [ids]...
+
+           $prog clean_stale_ids <lock_path> [ids]...
+           $prog stale_ids <lock_path> [ids]... #DEPRECATED, use clean_stale_ids
 
     A filesystem based lock manager requiring a unique id representing
     the lock holder.  This lock manager is mainly meant as a building
@@ -197,4 +198,7 @@ while [ $# -gt 0 ] ; do
     shift
 done
 
-"$@"
+action=$1 ; shift
+[ "$action" = "stale_ids" ] && action=clean_stale_ids # support deprecated
+
+"$action" "$@"
