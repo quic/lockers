@@ -22,8 +22,6 @@ test_file lock_local.sh
 test_file grace_lock.sh
 test_file lock_grace_checker.sh
 test_file ssh_id.sh
-
-echo ; echo "---- Test lock_ssh ----"
-"$MYDIR/lock_ssh.sh" || RESULT=$?
+test_file lock_ssh.sh
 
 exit $RESULT
