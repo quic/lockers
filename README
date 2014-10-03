@@ -36,7 +36,7 @@ Staleness Checkers
 ------------------
 
 The <policy>_lock.sh scripts can implement a staleness checking policy, but
-the need helpers to do the actual staleness checking.  Checking for
+they need helpers to do the actual staleness checking.  Checking for
 staleness requires a basic understanding of the ids used for locking.  The
 <type>_id.sh scripts help implement unique ids within a certain context,
 along with a way to check these ids for staleness.  Some of the helpers are:
@@ -74,6 +74,84 @@ This directory also has a semaphore implementation: semaphore.sh.  This
 semaphore defaults to using lock_local.sh as its internal locker
 implementation.  However, it is also capable of using an alternate locker
 implementation.
+
+ToDo
+----
+
+fast_lock.sh
+
+* My testing has shown that fast_lock does not really benefit from a grace
+period on deleting markdirs, remove it.
+
+* Currently the fast_lock mechanism has constraints which prevent markers
+from being assumed to be stale.  A simple update to the constraints, checking
+both that the move is successful and that the id leaf exists after the move,
+will allow this.  This would prevent the need for expensive staleness checks
+to have to be performed on markdirs to clean them.
+
+* With the above improvements it should be possible to expose a clean method
+to wrappers.  This clean can then be layered up the stack to reduce the amount
+of internal knowledge of fast_lock's mechanics.
+
+* It is possible to convert fast_lock to only use directories (currently
+the leaf is a file).  This conversion makes it possible to use a single
+mkdir -p to create markdirs making themselves potentially even less likely to
+get interrupted.
+
+
+zookeeper
+
+* create a zookeeper_lock.sh (mimicks fast_lock.sh)
+
+* create a zookeeper_grace_lock.sh (mimics grace_lock.sh) recovery policy
+
+* create a lock_ssh_zookeeper.sh (mimics lock_ssh.sh) a high level locker
+
+
+higher level lockers
+
+* The higher level lockers miss-guided error messages when used with a stale
+id, this should be cleaned up.
+
+* Potentially create a multi-lock helper that can share multiple high level
+lockers
+
+
+all
+
+* It might be helpful to be more object oriented and use "file" (object) level
+variables instead of passing around arguments like "$lock" to every
+method.  Cleaning this up reduces much of the code and pushes most argument
+checking to the script level.
+
+
+other lock types
+
+* create a rw_lock
+
+* create a "fair" lock
+
+* create a "fair" semaphore (might be possible without a "fair" lock)
+
+
+
+queues
+
+* The task_bucket could benefit from reliable fast clean methods.  Ways to
+force a clean is needed to more efficiently close buckets with many servers
+and many tasks.
+
+* The fs_queue needs a way to kill tasks.  That is possible currently with
+a hack by using the PID of the semaphore.  It might make sense to push
+killing down to the id helper level?  Then some high level lockers could be
+modified to kill their owners?  (If we have the id from the helper, it might
+be OK to bypass the high level locker)?
+
+
+Gerrit
+
+* The proposed replicate_all script probably needs a way to identify if lock
+owners are stale, so high level lockers may want to expose this.
 
 Copyright and License
 ---------------------
