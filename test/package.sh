@@ -21,6 +21,7 @@ test_file local_id.sh
 test_file lock_local.sh
 test_file grace_lock.sh
 test_file lock_grace_checker.sh
+test_file semaphore.sh
 test_file ssh_id.sh
 test_file lock_ssh.sh
 
