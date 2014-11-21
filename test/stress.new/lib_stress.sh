@@ -9,6 +9,7 @@ LIB_STRESS_ERR_COUNT_OFF=50
 #
 # Exit with an error if the counters get out of sync!
 #
+# Optional: LIB_STRESS_COUNT_SLEEP
 lib_stress_task_count() { # dir [subdir]
     local dir=$1/$2 slot=$2
     [ -n "$slot" ] && slot=${slot}:
@@ -19,12 +20,18 @@ lib_stress_task_count() { # dir [subdir]
         echo 0 > "$dir/b"
     fi
 
-    local ca=$(< "$dir/a") cb=$(< "$dir/b")
+    local ca=$(< "$dir/a")
+    [ -n "$LIB_STRESS_COUNT_SLEEP" ] && sleep "$LIB_STRESS_COUNT_SLEEP"
+    local cb=$(< "$dir/b")
+
     [ "$ca" == "$cb" ] || exit $LIB_STRESS_ERR_COUNT_OFF
     c=$((ca + 1))
     echo -n " $slot$c"
-    echo "$c" > "$dir/a"
+
+    # By reversing the write order, we accentuate the sleep skew
     echo "$c" > "$dir/b"
+    [ -n "$LIB_STRESS_COUNT_SLEEP" ] && sleep "$LIB_STRESS_COUNT_SLEEP"
+    echo "$c" > "$dir/a"
 }
 
 # ---------------- Low Level Locking Test Types ------------------

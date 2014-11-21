@@ -7,12 +7,12 @@ usage() { # error_message
     local prog=$(basename "$0")
     cat <<EOF
 
-    usage: $prog count [count] [--restart]
+    usage: $prog [--sleep <sleep>] count [count] [--restart]
            $prog lock_go_stale
 
     Example in three separate windows:
-      time $0 count 1000 --restart
-      time $0 count 1000
+      time $0 --sleep .1 count 1000 --restart
+      time $0 --sleep .1 count 1000
       while true ; do $prog lock_go_stale ; done
 
 EOF
@@ -34,6 +34,7 @@ while [ $# -gt 0 ] ; do
     case "$1" in
         -u|-h|--help) usage ;;
         --dir) shift ; DIR=$1 ;;
+        --sleep) shift ; LIB_STRESS_COUNT_SLEEP=$1 ;;
         *) break ;;
     esac
     shift
