@@ -13,6 +13,7 @@ out() { OUT=$("$@") ; }
 outerr() { OUT=$("$@" 2>&1) ; }
 
 SUBJECT=($MYDIR/../$MYNAME --local)
+ID=$MYDIR/../local_id.sh
 OUTDIR=$MYDIR/out
 SEM=$OUTDIR/$MYNAME
 
@@ -20,12 +21,14 @@ rm -rf "$SEM" # cleanup any previous runs
 
 first=$$
 stable_process & second=$!
+uidf=$("$ID" uid "$first")
+uids=$("$ID" uid "$second")
 
 out "${SUBJECT[@]}" acquire "$SEM" 1 "$first"
 result "Acq by first($first)" "$OUT"
 
 out "${SUBJECT[@]}" owners "$SEM"
-result_out "Owners should be first($first)" "$first" "$OUT"
+result_out "Owners should be uid of first($uidf)" "$uidf" "$OUT"
 
 out "${SUBJECT[@]}" slot "$SEM" "$first"
 result_out "Slot should be 1" "1" "$OUT"
@@ -43,8 +46,8 @@ result "Max 2 Acq by second($second)" "$OUT"
 
 out "${SUBJECT[@]}" owners "$SEM"
 OUT=$(echo $OUT)
-[ "$OUT" = "$first $second" ] || [ "$OUT" = "$second $first" ]
-result "Owners should be first and second($first $second)" "$OUT"
+[ "$OUT" = "$uidf $uids" ] || [ "$OUT" = "$uids $uidf" ]
+result "Owners should be uids of first and second($uidf $uids)" "$OUT"
 
 out "${SUBJECT[@]}" slot "$SEM" "$first"
 result_out "Slot for first($first) should be 1" "1" "$OUT"

@@ -14,6 +14,7 @@ outerr() { OUT=$("$@" 2>&1) ; }
 LOCKER=$MYDIR/../lock_local.sh
 OUTDIR=$MYDIR/out
 LOCK=$OUTDIR/lock_local
+ID=$MYDIR/../local_id.sh
 
 rm -rf "$LOCK" # cleanup any previous runs
 
@@ -22,8 +23,11 @@ stable_process & second=$!
 
 out "$LOCKER" lock "$LOCK" $first ; result "Lock by first($first)" "$OUT"
 
-out "$LOCKER" owner "$LOCK"
-result_out "Owner should be first($first)" "$first" "$OUT"
+out "$LOCKER" owner "$LOCK" ; uid=$("$ID" uid "$first")
+result_out "Owner should be uid of first($uid)" "$uid" "$OUT"
+
+out "$LOCKER" owner_pid "$LOCK"
+result_out "owner_pid should be first($first)" "$first" "$OUT"
 
 "$LOCKER" is_mine "$LOCK" $first ; result "first($first) is_mine" "$OUT"
 

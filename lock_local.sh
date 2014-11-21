@@ -16,7 +16,8 @@ usage() { # error_message
            $prog fast_lock <lock_path> <pid>  (DEPRECATED, use lock_nocheck)
            $prog unlock <lock_path> <pid|uid>
 
-           $prog owner <lock_path> > pid      (DEPRECATED, see warning)
+           $prog owner <lock_path> > uid
+           $prog owner_nocheck <lock_path> > uid
            $prog owner_pid <lock_path> > pid
            $prog owner_pid_nocheck <lock_path> > pid
            $prog is_mine <lock_path> <pid|uid>
@@ -25,10 +26,6 @@ usage() { # error_message
 
     A filesystem based lock manager requiring a pid representing
     the lock holder.
-
-    WARNING: use of owner is going to change, it will soon return
-             uid instead of pid.  If you need a pid (warning:  pids
-             are non-unique over time) use owner_pid instead.
 
 EOF
     [ $# -gt 0 ] && echo "Error - $@" >&2
@@ -60,7 +57,9 @@ LOCKER=("$mydir"/check_lock.sh $DEBUG)
 CLOCKER=("${LOCKER[@]}" "${STALE_CHECKER[@]}")
 
 case "$action" in
-    owner|owner_pid) pid "$("${CLOCKER[@]}" "owner" "$lock")" ;;
+    owner) "${CLOCKER[@]}" "owner" "$lock" ;;
+    owner_nocheck) "${LOCKER[@]}" "owner_nocheck" "$lock" ;;
+    owner_pid) pid "$("${CLOCKER[@]}" "owner" "$lock")" ;;
     owner_pid_nocheck) pid "$("${LOCKER[@]}" "owner_nocheck" "$lock")" ;;
 
     lock|unlock) "${CLOCKER[@]}" "$action" "$lock" "$(uid "$1")" ;;

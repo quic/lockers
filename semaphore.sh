@@ -86,7 +86,7 @@ release() { # semaphore [id]
     error "$sem not held by $id" 19
 }
 
-owners() { # semaphore > ids...
+owners() { # semaphore > uids...
     args owners "semaphore" "" "$@"
     local sem=$1 lock
 
@@ -118,7 +118,7 @@ usage() { # error_message
            $prog <locker> fast_acquire <semaphore_path> max [id]
            $prog <locker> release <semaphore_path> [id]
 
-           $prog <locker> owners <semaphore_path> > ids
+           $prog <locker> owners <semaphore_path> > uids
            $prog <locker> slot <semaphore_path> id > slot
 
     A filesystem locker based semaphore manager.
@@ -131,7 +131,7 @@ usage() { # error_message
                 lock <lock_path> [id] [seconds]
                 unlock <lock_path> [id] [seconds]
                 fast_lock <lock_path> [id]
-                owner <lock_path> > id
+                owner <lock_path> > uid
 
     <semaphore_path> filesystem path which all semaphore users have write
                      access to.
