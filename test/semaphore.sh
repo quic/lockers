@@ -33,6 +33,9 @@ result_out "Owners should be uid of first($uidf)" "$uidf" "$OUT"
 out "${SUBJECT[@]}" slot "$SEM" "$first"
 result_out "Slot should be 1" "1" "$OUT"
 
+out "${SUBJECT[@]}" owner "$SEM" 1
+result_out "Owner slot should be uid of first($uidf)" "$uidf" "$OUT"
+
 out "${SUBJECT[@]}" release "$SEM" "$first"
 result "Rel by first($first)" "$OUT"
 
@@ -54,11 +57,21 @@ result_out "Slot for first($first) should be 1" "1" "$OUT"
 out "${SUBJECT[@]}" slot "$SEM" "$second"
 result_out "Slot for second($second) should be 2" "2" "$OUT"
 
+out "${SUBJECT[@]}" owner "$SEM" 1
+result_out "Owner2 slot should be uid of first($uidf)" "$uidf" "$OUT"
+out "${SUBJECT[@]}" owner "$SEM" 2
+result_out "Owner slot 2 should be uid of second($uids)" "$uids" "$OUT"
+
 out "${SUBJECT[@]}" release "$SEM" "$first"
 result "Rel again by first($first)" "$OUT"
+out "${SUBJECT[@]}" owner "$SEM" 1
+result_out "Owner slot 1 should be blank" "" "$OUT"
+
 
 out "${SUBJECT[@]}" acquire "$SEM" 1 "$first"
 result "Acq3 by first($first)" "$OUT"
+out "${SUBJECT[@]}" owner "$SEM" 1
+result_out "Owner2 slot should be uid of first($uidf)" "$uidf" "$OUT"
 
 out "${SUBJECT[@]}" release "$SEM" "$first"
 result "Rel again by first($first)" "$OUT"

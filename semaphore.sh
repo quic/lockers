@@ -92,8 +92,14 @@ owners() { # semaphore > uids...
 
     for lock in "$sem"/* ; do
          [ "$lock" = "$sem"/'*' ] && continue
-         "${LOCKER[@]}"  owner "$lock"
+         "${LOCKER[@]}" owner "$lock"
     done
+}
+
+owner() { # semaphore slot > uid
+    args owner "semaphore slot" "" "$@"
+    local sem=$1 slot=$2
+    "${LOCKER[@]}" owner "$sem/$slot"
 }
 
 slot() { # semaphore [id] > slot
@@ -119,6 +125,7 @@ usage() { # error_message
            $prog <locker> release <semaphore_path> [id]
 
            $prog <locker> owners <semaphore_path> > uids
+           $prog <locker> owner <semaphore_path> <slot> > uid
            $prog <locker> slot <semaphore_path> id > slot
 
     A filesystem locker based semaphore manager.
