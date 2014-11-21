@@ -9,8 +9,9 @@ LIB_STRESS_ERR_COUNT_OFF=50
 #
 # Exit with an error if the counters get out of sync!
 #
-lib_stress_task_count() { # dir
-    local dir=$1
+lib_stress_task_count() { # dir [subdir]
+    local dir=$1/$2 slot=$2
+    [ -n "$slot" ] && slot=${slot}:
     if ! [ -d "$dir" ] ; then
         mkdir -p "$dir"
         echo "Counting in $dir"
@@ -21,7 +22,7 @@ lib_stress_task_count() { # dir
     local ca=$(< "$dir/a") cb=$(< "$dir/b")
     [ "$ca" == "$cb" ] || exit $LIB_STRESS_ERR_COUNT_OFF
     c=$((ca + 1))
-    echo -n " $c"
+    echo -n " $slot$c"
     echo "$c" > "$dir/a"
     echo "$c" > "$dir/b"
 }
@@ -30,7 +31,7 @@ lib_stress_task_count() { # dir
 
 # Requires: LIB_STRESS_LOCK_CMD and LIB_STRESS_UNLOCK_CMD arrays
 # Optional: LIB_STRESS_CLEAN array
-lib_stress_task() { # count --restart
+lib_stress_lock_task() { # count --restart
     local cnt=$1 i=0
 
     if [ "$2" = "--restart" -a  -n "$LIB_STRESS_CLEAN" ] ; then
@@ -46,26 +47,51 @@ lib_stress_task() { # count --restart
 }
 
 # Requires: LIB_STRESS_LOCK_CMD
-lib_stress_go_stale() {
+lib_stress_lock_go_stale() {
     while ! "${LIB_STRESS_LOCK_CMD[@]}" ; do : ; done
 }
 
+# ---------------- Low Level Sempahore Test Types ------------------
+
+# Requires: LIB_STRESS_ACQUIRE_CMD, LIB_STRESS_SLOT_CMD,
+#  and LIB_STRESS_RELEASE_CMD arrays
+# Optional: LIB_STRESS_CLEAN array
+lib_stress_semaphore_task() { # count --restart
+    local cnt=$1 i=0 slot
+
+    if [ "$2" = "--restart" -a  -n "$LIB_STRESS_CLEAN" ] ; then
+        rm -rf "${LIB_STRESS_CLEAN[@]}"
+    fi
+
+    while [ "$i" != "$cnt" ] ; do
+        i=$((i + 1))
+        while ! "${LIB_STRESS_ACQUIRE_CMD[@]}" ; do : ; done
+        slot=$("${LIB_STRESS_SLOT_CMD[@]}")
+        "${LIB_STRESS_TASK_CMD[@]}" "$slot"
+        "${LIB_STRESS_RELEASE_CMD[@]}"
+    done
+}
+
+# Requires: LIB_STRESS_ACQUIRE_CMD
+lib_stress_semaphore_go_stale() {
+    while ! "${LIB_STRESS_ACQUIRE_CMD[@]}" ; do : ; done
+}
 
 # ---------------- High Level Locking Test Tasks ------------------
 
-# Requires: LIB_STRESS_LOCK
+# Requires: LIB_STRESS_TYPE, LIB_STRESS_LOCK
 lib_stress_notask() { # count --restart
     LIB_STRESS_TASK_CMD=(echo -n .)
     LIB_STRESS_CLEAN=("$LIB_STRESS_LOCK")
-    lib_stress_task "$@"
+    lib_stress_${LIB_STRESS_TYPE}_task "$@"
     echo
 }
 
-# Requires: LIB_STRESS_LOCK & LIB_STRESS_COUNTDIR
+# Requires: LIB_STRESS_TYPE, LIB_STRESS_LOCK, and LIB_STRESS_COUNTDIR
 lib_stress_count() { # count --restart
     LIB_STRESS_TASK_CMD=(lib_stress_task_count "$LIB_STRESS_COUNTDIR")
     LIB_STRESS_CLEAN=("$LIB_STRESS_COUNTDIR" "$LIB_STRESS_LOCK")
-    lib_stress_task "$@"
+    lib_stress_${LIB_STRESS_TYPE}_task "$@"
     echo
 }
 
@@ -76,4 +102,15 @@ lib_stress_count() { # count --restart
 lib_stress_setup_id_locker() { # ID
    LIB_STRESS_LOCK_CMD=("${LIB_STRESS_LOCKER[@]}" lock "$LIB_STRESS_LOCK" "$1")
    LIB_STRESS_UNLOCK_CMD=("${LIB_STRESS_LOCKER[@]}" unlock "$LIB_STRESS_LOCK" "$1")
+   LIB_STRESS_TYPE=lock
+}
+
+# Sets up LIB_STRESS_ACQUIRE_CMD, LIB_STRESS_SLOT_CMD, and LIB_STRESS_RELEASE_CMD
+#      from LIB_STRESS_SEMAPHORE and LIB_STRESS_LOCK
+lib_stress_setup_id_semaphore() { # MAX ID
+   local max=$1 id=$2
+   LIB_STRESS_ACQUIRE_CMD=("${LIB_STRESS_SEMAPHORE[@]}" acquire "$LIB_STRESS_LOCK" "$max" "$id")
+   LIB_STRESS_SLOT_CMD=("${LIB_STRESS_SEMAPHORE[@]}" slot "$LIB_STRESS_LOCK" "$id")
+   LIB_STRESS_RELEASE_CMD=("${LIB_STRESS_SEMAPHORE[@]}" release "$LIB_STRESS_LOCK" "$id")
+   LIB_STRESS_TYPE=semaphore
 }
