@@ -47,6 +47,11 @@ result "Not is_stale mismatch(short) host_uid($host_uid)"
 ! "$ID" is_stale "malformed"
 result "Not is_stale malformed"
 
+notification=$("$ID" --on-check-fail echo is_stale "$host_uid")
+result_out "is_stale notifier" \
+    "$HOSTNAME $host_uid WARNING: host($HOSTNAME) is unable to identify live/staleness for $host_uid: \
+FQDN Missmatch" "$notification"
+
 if [ "$1" = "--full" ] ; then # not good for automated tests.
     # Takes about 20s to time out,
     uhost_uid=$(echo "$uid"|sed -e 's/[^:]*:/unknown:/')
@@ -64,5 +69,10 @@ result "is_stale dead uid($uid)"
 
 ! "$ID" is_stale "$host_uid"
 result "Not is_stale dead mismatch(short) host_uid($host_uid)"
+
+notification=$("$ID" --on-check-fail echo is_stale "$host_uid")
+result_out "is_stale dead notifier" \
+    "$HOSTNAME $host_uid WARNING: host($HOSTNAME) is unable to identify live/staleness for $host_uid: \
+FQDN Missmatch" "$notification"
 
 exit $RESULT

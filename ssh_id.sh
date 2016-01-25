@@ -14,6 +14,12 @@ ERR_MISSING_ARG=127
 
 fqdn() { "${SSH_LOGIN[@]}" "$host" hostname --fqdn ; } # host
 
+notifier() { echo "$3" >&2 ; } # checking_host id message
+
+notify() { # id reason
+  "${NOTIFIER[@]}" "$HOSTNAME" "$1" "WARNING: host($HOSTNAME) is unable to identify live/staleness for $1: $2"
+}
+
 is_host_compatible() { # host
     local host=$1
     local fqdn=$(fqdn "$host")
@@ -46,12 +52,23 @@ is_stale() {  # uid
    [ -z "$uid" ] && return $ERR_MISSING_ARG
 
    local host=$(host "$uid") pid=$(pid "$uid")
-   ( [ -n "$host" ] && [ -n "$pid" ] ) || return $ERR_MALFORMED_UID
+   if [ -z "$host" ] || [ -z "$pid" ] ; then
+       notify "$uid" "Malformed UID"
+       return $ERR_MALFORMED_UID
+   fi
 
    local ssh_uid rtn
    ssh_uid=$(ssh_uid "$host" "$pid") ; rtn=$?
-   [ $rtn = $ERR_HOST_INCOMPATIBLE ] && return $ERR_HOST_INCOMPATIBLE
-   [ $rtn = $ERR_FQDN_MISSMATCH ] && return $ERR_FQDN_MISSMATCH
+   if [ $rtn -gt 1 ] ; then
+      if [ $rtn = $ERR_HOST_INCOMPATIBLE ] ; then
+          notify "$uid" "Host Incompatible"
+      elif [ $rtn = $ERR_FQDN_MISSMATCH ] ; then
+          notify "$uid" "FQDN Missmatch"
+      else
+          notify "$uid" "Unknown"
+      fi
+      return $rtn
+   fi
 
    [ -z "$ssh_uid" ] && return 0 # no starttime
    [ "$ssh_uid" != "$uid" ] # different boottime
@@ -74,7 +91,7 @@ usage() { # error_message
     local prog=$(basename "$0")
     cat >&2 <<EOF
 
-    usage: $prog is_stale <uid>
+    usage: $prog [--on-check-fail notifier] is_stale <uid>
            $prog uid <pid> > <uid>  (must be run on host)
 
            $prog pid <uid> > pid
@@ -91,10 +108,28 @@ usage() { # error_message
     host reports.  Use is_host_compatible to manually check a user and
     host's ssh setup for compatability with this locker.
 
+    --on-check-fail notifier  Specifiy a notifier to run a command when
+                              it is not possible to determine
+                              live/staleness.  Args may be added by
+                              using --on-check-notifier multiple times.
+                              (Default notifier prints warnings to stderr)
+
+                              The notifier should expect the following
+                              trailing arguments:
+                                  <checking_host> <uid> <reason>
 EOF
     [ $# -gt 0 ] && echo "Error - $@" >&2
     exit 10
 }
+
+while [ $# -gt 0 ] ; do
+   case "$1" in
+       --on-check-fail) shift ; NOTIFIER+=("$1") ;;
+       *) break ;;
+   esac
+   shift
+done
+[ -z "$NOTIFIER" ] && NOTIFIER=(notifier)
 
 [ $# -lt 2 ] && usage "no pid|uid specified"
 
