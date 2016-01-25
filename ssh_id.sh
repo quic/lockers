@@ -8,6 +8,9 @@ qerr() { "$@" 2>/dev/null ; } # execute a cmd and quiet the stderr
 SSH_LOGIN=(ssh -o StrictHostKeyChecking=yes -o PasswordAuthentication=no)
 
 ERR_HOST_INCOMPATIBLE=10
+ERR_FQDN_MISSMATCH=11
+ERR_MALFORMED_UID=20
+ERR_MISSING_ARG=127
 
 fqdn() { "${SSH_LOGIN[@]}" "$host" hostname --fqdn ; } # host
 
@@ -19,9 +22,9 @@ is_host_compatible() { # host
     [ "$fqdn" = "$(fqdn "$fqdn")" ] || return $ERR_HOST_INCOMPATIBLE
 }
 
-ssh_uid() { # host pid > uid (if running)
-    local host=$1 pid=$2
-    [ -z "$host" ] && return 1
+ssh_uid() { # fqdn_host pid > uid (if running)
+    local host="$1" pid=$2
+    ( [ -n "$host" ] && [ -n "$pid" ] ) || return $ERR_MISSING_ARG
 
     qerr "${SSH_LOGIN[@]}" "$host"\
         hostname --fqdn ';'\
@@ -30,12 +33,9 @@ ssh_uid() { # host pid > uid (if running)
         {
             read fqdn ; read boot ; read starttime
             [ -z "$fqdn" ] && return $ERR_HOST_INCOMPATIBLE
-            [ -z "$boot" ] && return 11
+            [ "$host" != "$fqdn" ] && return $ERR_FQDN_MISSMATCH
+            [ -z "$boot" ] && return $ERR_HOST_INCOMPATIBLE
 
-            # missing arg, but allow ssh test anyway for is_host_compatible
-            # (this may no longer make sense since we no longer call this
-            #  from is_host_compatible)
-            [ -z "$pid" ] && return 2
             [ -z "$starttime" ] && return 0
             echo "$fqdn:$pid:$starttime:$boot"
         }
@@ -43,15 +43,17 @@ ssh_uid() { # host pid > uid (if running)
 
 is_stale() {  # uid
    local uid=$1
-   [ -z "$uid" ] && return 1
+   [ -z "$uid" ] && return $ERR_MISSING_ARG
 
    local host=$(host "$uid") pid=$(pid "$uid")
-   [ -n "$host" ] || return 1
+   ( [ -n "$host" ] && [ -n "$pid" ] ) || return $ERR_MALFORMED_UID
 
-   local ssh_uid
-   ssh_uid=$(ssh_uid "$host" "$pid") || return 1
+   local ssh_uid rtn
+   ssh_uid=$(ssh_uid "$host" "$pid") ; rtn=$?
+   [ $rtn = $ERR_HOST_INCOMPATIBLE ] && return $ERR_HOST_INCOMPATIBLE
+   [ $rtn = $ERR_FQDN_MISSMATCH ] && return $ERR_FQDN_MISSMATCH
+
    [ -z "$ssh_uid" ] && return 0 # no starttime
-   [ "$host" == "$(host "$ssh_uid")" ] || return 1
    [ "$ssh_uid" != "$uid" ] # different boottime
 }
 

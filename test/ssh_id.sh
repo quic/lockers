@@ -44,6 +44,9 @@ host_uid=$(echo "$uid"|sed -e "s/[^:]*:/$(hostname):/")
 ! "$ID" is_stale "$host_uid"
 result "Not is_stale mismatch(short) host_uid($host_uid)"
 
+! "$ID" is_stale "malformed"
+result "Not is_stale malformed"
+
 if [ "$1" = "--full" ] ; then # not good for automated tests.
     # Takes about 20s to time out,
     uhost_uid=$(echo "$uid"|sed -e 's/[^:]*:/unknown:/')
@@ -59,5 +62,7 @@ kill_wait $opid > /dev/null 2>&1
 "$ID" is_stale "$uid"
 result "is_stale dead uid($uid)"
 
+! "$ID" is_stale "$host_uid"
+result "Not is_stale dead mismatch(short) host_uid($host_uid)"
 
 exit $RESULT
