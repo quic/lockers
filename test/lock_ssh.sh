@@ -11,9 +11,14 @@ source "$MYDIR"/results.sh
 out() { OUT=$("$@") ; }
 outerr() { OUT=$("$@" 2>&1) ; }
 
+
 LOCKER=$MYDIR/../lock_ssh.sh
+FAST_LOCK=$MYDIR/../fast_lock.sh
 OUTDIR=$MYDIR/out
 LOCK=$OUTDIR/lock_ssh
+
+NFILE=$LOCK.notified
+[ "$1" = "--notify" ] && { shift ; echo "$@" > "$NFILE" ; exit ; }
 
 mkdir -p "$OUTDIR"
 rm -rf "$LOCK" # cleanup any previous runs
@@ -79,7 +84,16 @@ result "Dead lock by second($second), can lock_check by first($first)" "$OUT"
 out "$LOCKER" unlock "$LOCK" $first
 
 
-[ $RESULT -eq 0 ] && rm -rf "$LOCK"
+BAD_ID=BADID.$$
+"$FAST_LOCK" lock "$LOCK" "$BAD_ID"
+CHECKER_ARGS=(--on-check-fail "$MYPROG" --on-check-fail --notify)
+"$LOCKER" "${CHECKER_ARGS[@]}" lock_check "$LOCK" $$ 1
+OUT=$(< "$NFILE")
+result_out "Notify on stale" "$LOCK $HOSTNAME $BAD_ID WARNING: host($HOSTNAME) \
+is unable to identify live/staleness for $BAD_ID: Malformed UID" "$OUT"
+
+
+[ $RESULT -eq 0 ] && rm -rf "$LOCK" "$NFILE"
 rmdir "$OUTDIR"
 
 exit $RESULT
