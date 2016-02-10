@@ -23,6 +23,12 @@ uid=$("$ID" uid $opid)
 out=$(echo "$uid" | grep $opid)
 result "original pid($opid) in uid($uid)" "$out"
 
+"$ID" is_valid_uid "$uid"
+result "is_valid uid($uid)" "$out"
+
+! "$ID" is_valid_uid "$opid"
+result "Not is_valid opid($opid)" "$out"
+
 sshuid=$("$ID" ssh_uid "$myhost" $opid)
 result_out "Internal ssh_uid($sshuid) == uid($uid)" "$uid" "$sshuid"
 
