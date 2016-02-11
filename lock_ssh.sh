@@ -65,7 +65,7 @@ while [ $# -gt 0 ] ; do
             DEBUG=DEBUG
             LOCKER_ARGS+=("$1")
         ;;
-        --on-check-fail) CHECKER_ARGS+=(-s "$1" -s "$2") ; shift ;;
+        --on-check-fail) CHECK_FAIL+=(-s "$1" -s "$2") ; shift ;;
 
         *) break ;;
     esac
@@ -76,7 +76,9 @@ action=$1
 lock=$2 ; host=$2
 shift 2
 
-CHECKER_ARGS+=(-s --on-check-fail -s "$lock")
+if [ -n "$CHECK_FAIL" ] ; then
+    CHECKER_ARGS+=("${CHECK_FAIL[@]}" -s --on-check-fail -s "$lock")
+fi
 STALE_CHECKER=("$mydir/ssh_id.sh" "${CHECKER_ARGS[@]}" -s is_stale)
 LOCKER=("$mydir/grace_lock.sh" "${STALE_CHECKER[@]}" "${LOCKER_ARGS[@]}")
 
