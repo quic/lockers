@@ -207,13 +207,13 @@ usage() { # error_message
     the lock holder's stalness must be verifiable using the id, thus
     the stale checker:
 
-    <stale_checker> can be <cmd [-s args]...>
+    <stale_checker> can be <cmd [--checker-arg arg]...>
 
-    <cmd [-s args]...>
+    <cmd [--checker-arg arg]...>
 
               Command to run to see if a lock owner (id) is stale.
               <id> will be the first argument to cmd after any specified
-              args via -s.
+              args via --checker-arg.
 
     gopts (grace options):
 
@@ -258,7 +258,7 @@ while [ $# -gt 0 ] ; do
 
         --grace-seconds) GRACE_SECONDS=$2 ; shift ;;
 
-        -s) STALE_CHECKER+=("$2") ; shift ;;
+        -s|--checker-arg) STALE_CHECKER+=("$2") ; shift ;;
 
         lock_nocheck|fast_lock|owner|is_mine) STALE_CHECKER=(true) ; break ;;
 

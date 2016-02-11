@@ -8,6 +8,13 @@ pid() { "${ID_HELPER[@]}" pid "$1" ; } # pid|uid > pid
 host() { "${ID_HELPER[@]}" host "$1" ; } # uid > host
 compatible() { "${ID_HELPER[@]}" is_host_compatible "$1" ; } # host
 
+checker_args() { # args...
+    while [ $# -gt 0 ] ; do
+        CHECKER+=(--checker-arg "$1")
+        shift
+    done
+}
+
 usage() { # error_message
     local prog=$(basename "$0")
     cat >&2 <<EOF
@@ -61,6 +68,7 @@ mypath=$(readlink -e "$0")
 mydir=$(dirname "$mypath")
 
 ID_HELPER=("$mydir/ssh_id.sh")
+CHECKER=("$mydir/ssh_id.sh")
 GRACE_SECONDS=10
 while [ $# -gt 0 ] ; do
     case "$1" in
@@ -70,7 +78,7 @@ while [ $# -gt 0 ] ; do
             LOCKER_ARGS+=("$1")
         ;;
         --grace-seconds) GRACE_SECONDS=$2 ; shift ;;
-        --on-check-fail) CHECK_FAIL+=(-s "$1" -s "$2") ; shift ;;
+        --on-check-fail) CHECK_FAIL+=("$1" "$2") ; shift ;;
 
         *) break ;;
     esac
@@ -82,10 +90,10 @@ lock=$2 ; host=$2
 shift 2
 
 if [ -n "$CHECK_FAIL" ] ; then
-    CHECKER_ARGS+=("${CHECK_FAIL[@]}" -s --on-check-fail -s "$lock")
+    checker_args "${CHECK_FAIL[@]}" --on-check-fail "$lock"
 fi
-STALE_CHECKER=("$mydir/ssh_id.sh" "${CHECKER_ARGS[@]}" -s is_stale)
-LOCKER=("$mydir/grace_lock.sh" "${STALE_CHECKER[@]}" "${LOCKER_ARGS[@]}")
+checker_args is_stale
+LOCKER=("$mydir/grace_lock.sh" "${CHECKER[@]}" "${LOCKER_ARGS[@]}")
 
 case "$action" in
     owner) "${LOCKER[@]}" "$action" "$lock" ;;
