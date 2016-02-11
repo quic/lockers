@@ -91,7 +91,8 @@ case "$action" in
     lock|unlock)
         id=$1 ; shift;
         secs=$1 ; [ -z "$secs" ] && secs=10
-        "${LOCKER[@]}" "$action" "$lock" "$(uid "$id")" $secs
+        [ -n "$secs" ] && LOCKER+=(--grace-seconds "$secs")
+        "${LOCKER[@]}" "$action" "$lock" "$(uid "$id")"
     ;;
 
     lock_check|fast_lock|is_mine)

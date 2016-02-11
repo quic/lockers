@@ -91,35 +91,37 @@ ids_in_use() { # lock > ids...
     done
 }
 
-ids_need_check() { # lock [stale_seconds] > potentially_stale_ids
-    local lock=$1 secs=$2  use stale=()
+ids_need_check() { # lock > potentially_stale_ids
+    local lock=$1 use stale=()
     local ids=$(ids_in_use "$lock")
     debug "ids_in_use: $ids"
 
-    [ -n "$secs" ] && stale=('!' -newermt "$(newer_seconds "$secs")")
+    if [ -n "$GRACE_SECONDS" ] ; then
+        stale=('!' -newermt "$(newer_seconds "$GRACE_SECONDS")")
+    fi
     for use in $(q find "$lock/in_use" -type d "${stale[@]}") ; do
         [ "$use" = "$lock/in_use" ] && continue
         basename "$use"
     done
 }
 
-ponder_clean() { # lock [stale_seconds]
-    local lock=$1 secs=$2 uidb uida
+ponder_clean() { # lock
+    local lock=$1 uidb uida
 
-    local before=$(ids_need_check "$lock" "$secs")
+    local before=$(ids_need_check "$lock")
     debug "ids_need_check before: $before"
     [ -n "$before" ] || return
 
     # Increase the chances that someone else checks instead of us by using
     # a random offset, the first one to get there will prevent subsequent
     # checks, until the next grace period.
-    if [ -n "$secs" ] ; then
-        local delay=$(($RANDOM % $secs / 2))
+    if [ -n "$GRACE_SECONDS" ] ; then
+        local delay=$(($RANDOM % $GRACE_SECONDS / 2))
         debug "delay our staleness check by $delay"
         sleep $delay
     fi
 
-    local after=$(ids_need_check "$lock" "$secs")
+    local after=$(ids_need_check "$lock")
     debug "ids_need_check after: $after"
     [ -n "$after" ] || return
 
@@ -140,11 +142,12 @@ lock_nocheck() { # lock id # => 10 critical error (stop spinning!)
 
 lock() { # lock id [stale_seconds] # => 10 critical error (stop spinning!)
     args lock "lock id" "stale_seconds" "$@"
-    local lock=$1 id=$2  rtn ; shift 2
+    local lock=$1 id=$2 secs=$3 rtn ; shift 2
+    [ -n "$secs" ] && GRACE_SECONDS=$secs
 
     lock_nocheck "$lock" "$id" ; rtn=$?
     q rmdir "$lock/in_use/$id" "$lock"/in_use "$lock"
-    q-shell-init ponder_clean "$lock" "$@" &
+    q-shell-init ponder_clean "$lock" &
     return $rtn
 }
 
@@ -167,12 +170,13 @@ lock_check() { # lock id # => 10 critical error
 
 unlock() { # lock id [stale_seconds]
     args unlock "lock id" "[stale_seconds]" "$@"
-    local lock=$1 id=$2 ; shift 2
+    local lock=$1 id=$2 secs=$3 ; shift 2
+    [ -n "$secs" ] && GRACE_SECONDS=$secs
 
     "${FAST_LOCKER[@]}" unlock "$lock" "$id"
 
     q rmdir "$lock/in_use/$id" "$lock"/in_use "$lock"
-    q-shell-init ponder_clean "$lock" "$@" &
+    q-shell-init ponder_clean "$lock" &
 }
 
 owner() { # lock > id
@@ -189,11 +193,11 @@ usage() { # error_message
     local prog=$(basename "$0")
     cat >&2 <<EOF
 
-    usage: $prog <stale_checker> lock <lock_path> <id> [seconds]
+    usage: $prog [gopts] <stale_checker> lock <lock_path> <id>
            $prog fast_lock <lock_path> <id>  # DEPRECATED: use lock_nocheck
            $prog lock_nocheck <lock_path> <id>
            $prog <stale_checker> lock_check <lock_path> <id>
-           $prog <stale_checker> unlock <lock_path> <id> [seconds]
+           $prog [gopts] <stale_checker> unlock <lock_path> <id>
 
            $prog owner <lock_path> > id
            $prog is_mine <lock_path> id
@@ -211,6 +215,10 @@ usage() { # error_message
               <id> will be the first argument to cmd after any specified
               args via -s.
 
+    gopts (grace options):
+
+    --grace-seconds <seconds>
+
     seconds   The amount of time a lock component needs to be untouched
               before even considering checking it for staleness.  To
               prevent multiple checkers, set this to longer then the
@@ -220,7 +228,7 @@ usage() { # error_message
    This locker is meant to be used with expensive stale checks.  It
    therefore has a strategy aimed at reducing these checks.  Stale checks
    are performed by the checking process which gets there first after a
-   grace period.  Additionally, each checker has an random delay after
+   grace period.  Additionally, each checker has a random delay after
    its grace period (bounded by the grace period), before checking.  The
    random delay drastically decreases the chance of redundant stale
    checks.
@@ -247,6 +255,8 @@ while [ $# -gt 0 ] ; do
         -u|-h|--help) usage ;;
         -di|--info) DEBUG=INFO ; FAST_LOCKER+=("$1") ;;
         -d|--debug) DEBUG=DEBUG ; FAST_LOCKER+=("$1") ;;
+
+        --grace-seconds) GRACE_SECONDS=$2 ; shift ;;
 
         -s) STALE_CHECKER+=("$2") ; shift ;;
 
