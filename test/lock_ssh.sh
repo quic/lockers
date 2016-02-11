@@ -70,9 +70,10 @@ result "Unlock by second($second)" "$OUT"
 "$LOCKER" lock "$LOCK" $second
 kill_wait $second > /dev/null 2>&1
 sleep 2 # make the second stale
-out "$LOCKER" lock "$LOCK" $first 1 # starts cleanup after lock attempt
+ # starts cleanup after lock attempt
+out "$LOCKER" --grace-seconds 1 lock "$LOCK" $first
 sleep 1
-out "$LOCKER" lock "$LOCK" $first 1
+out "$LOCKER" --grace-seconds 1 lock "$LOCK" $first
 result "Dead lock by second($second), can lock by first($first)" "$OUT"
 
 out "$LOCKER" unlock "$LOCK" $first

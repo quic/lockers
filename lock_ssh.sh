@@ -12,9 +12,9 @@ usage() { # error_message
     local prog=$(basename "$0")
     cat >&2 <<EOF
 
-    usage: $prog [opts] lock <lock_path> <pid> [seconds]
+    usage: $prog [opts][gopts] lock <lock_path> <pid>
            $prog [opts] lock_check <lock_path> <pid>
-           $prog [opts] unlock <lock_path> <pid|uid> [seconds]
+           $prog [opts][gopts] unlock <lock_path> <pid|uid>
 
            $prog [opts] fast_lock <lock_path> <pid>
            $prog [opts] owner <lock_path> > uid
@@ -26,6 +26,10 @@ usage() { # error_message
 
     A lock manager designed for cluster use via a shared filesystem with
     ssh run checks.
+
+    gopts (grace options):
+
+    --grace-seconds <seconds>
 
     seconds   The amount of time a lock component needs to be untouched for
               before even considering checking it for staleness.  Checking
@@ -57,7 +61,7 @@ mypath=$(readlink -e "$0")
 mydir=$(dirname "$mypath")
 
 ID_HELPER=("$mydir/ssh_id.sh")
-
+GRACE_SECONDS=10
 while [ $# -gt 0 ] ; do
     case "$1" in
         -di|--info) DEBUG=INFO ;;
@@ -65,6 +69,7 @@ while [ $# -gt 0 ] ; do
             DEBUG=DEBUG
             LOCKER_ARGS+=("$1")
         ;;
+        --grace-seconds) GRACE_SECONDS=$2 ; shift ;;
         --on-check-fail) CHECK_FAIL+=(-s "$1" -s "$2") ; shift ;;
 
         *) break ;;
@@ -90,8 +95,8 @@ case "$action" in
 
     lock|unlock)
         id=$1 ; shift;
-        secs=$1 ; [ -z "$secs" ] && secs=10
-        [ -n "$secs" ] && LOCKER+=(--grace-seconds "$secs")
+        [ -n "$1" ] && GRACE_SECONDS=$1
+        LOCKER+=(--grace-seconds "$GRACE_SECONDS")
         "${LOCKER[@]}" "$action" "$lock" "$(uid "$id")"
     ;;
 
