@@ -130,8 +130,10 @@ usage() { # error_message
 
     A filesystem locker based semaphore manager.
 
-    <locker> can consist of <cmd [-a arg]...> or -l|--local for safe local
-             host only locking.
+    <locker> can consist of:
+             <cmd [--locker-arg|-a arg]...>
+               or
+             -l|--local for safe local host only locking.
 
              The <locker> command must understand the following lock commands:
 
@@ -166,7 +168,7 @@ while [ $# -gt 0 ] ; do
         -l|--local) LOCKER=("$mydir"/lock_local.sh)
                     LOCKER_TESTER=("$mydir"/test/lock_local.sh) ;;
 
-        -a) LOCKER=("${LOCKER[@]}" "$2") ; shift ;;
+        -a|--locker-arg) LOCKER=("${LOCKER[@]}" "$2") ; shift ;;
 
         *)  [ -n "$LOCKER" ] && break
             LOCKER=("$1") ;;

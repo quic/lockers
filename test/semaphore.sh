@@ -12,10 +12,18 @@ source "$MYDIR"/results.sh
 out() { OUT=$("$@") ; }
 outerr() { OUT=$("$@" 2>&1) ; }
 
-SUBJECT=($MYDIR/../$MYNAME --local)
+mylocker() {
+    MYLOCKER=($MYDIR/../lock_local.sh)
+    "${MYLOCKER[@]}" "$@"
+}
+
+MYSUBJECT=$MYDIR/../$MYNAME
+SUBJECT=("$MYSUBJECT" --local)
 ID=$MYDIR/../local_id.sh
 OUTDIR=$MYDIR/out
 SEM=$OUTDIR/$MYNAME
+
+[ "$1" = "--mylocker" ] && { shift ; mylocker "$@" ; exit ; }
 
 rm -rf "$SEM" # cleanup any previous runs
 
@@ -77,6 +85,12 @@ out "${SUBJECT[@]}" release "$SEM" "$first"
 result "Rel again by first($first)" "$OUT"
 out "${SUBJECT[@]}" release "$SEM" "$second"
 result "Rel again by second($second)" "$OUT"
+
+
+out "${MYSUBJECT[@]}" "$0" --locker-arg --mylocker acquire "$SEM" 1 "$first"
+result "MyLocker Acq by first($first)" "$OUT"
+out "${MYSUBJECT[@]}" "$0" --locker-arg --mylocker release "$SEM" "$first"
+result "MyLocker Rel by first($first)" "$OUT"
 
 
 rmdir "$OUTDIR"
