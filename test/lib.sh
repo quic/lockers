@@ -13,3 +13,12 @@ stable_process() {
 }
 
 kill_wait() { kill $1 ; wait $1 ; }
+
+spinner() { # seconds message
+    echo -n "Waiting $1 seconds for $2"
+    for i in $(seq 0 "$1") ; do
+        sleep 1
+        echo -n "."
+    done
+    echo
+}

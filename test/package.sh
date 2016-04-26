@@ -24,5 +24,6 @@ test_file lock_grace_checker.sh
 test_file semaphore.sh
 test_file ssh_id.sh
 test_file lock_ssh.sh
+test_file semaphore_ssh.sh
 
 exit $RESULT
