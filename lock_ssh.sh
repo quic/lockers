@@ -49,7 +49,7 @@ usage() { # error_message
 
     opts (global options)
 
-    --on-check-fail notifier  Specifiy a notifier to run a command when
+    --on-check-fail notifier  Specify a notifier to run a command when
                               it is not possible to determine
                               live/staleness.  Args may be added by
                               using --on-check-notifier multiple times.
