@@ -33,7 +33,7 @@ result "first($first) is_mine" "$OUT"
 ! out "$LOCKER" is_mine "$LOCK" $second
 result "second($second) ! is_mine" "$OUT"
 
-! outerr "$LOCKER" true lock "$LOCK" first
+! outerr "$LOCKER" true lock "$LOCK" $first
 result "Cannot relock by first($first)" "$OUT"
 
 ! outerr "$LOCKER" true lock "$LOCK" $second
