@@ -26,6 +26,14 @@ args() { # action needed optional [args]...
     usage "'$func' takes <$needed> [$optional], given ($*)"
 }
 
+in_args() { # arg [args]...
+    local in=$1 arg ; shift
+    for arg in "$@" ; do
+        [ "$in" = "$arg" ] && return
+    done
+    return 1
+}
+
 # See if the id is stale
 is_stale() {  # id
     [ -z "$1" ] && return 0
@@ -72,22 +80,16 @@ ids_in_use() { # lock > ids...
 
     # In tracked but not after? -> no longer in use
     for uidt in $tracked ; do
-        local inuse=''
-        for uida in $after ; do
-            [ "$uida" = "$uidt" ] || continue
-            inuse=true
-        done
-        [ -z "$inuse" ] && q rmdir "$lock/in_use/$uidt"
+        in_args "$uidt" $after || q rmdir "$lock/in_use/$uidt"
     done
     q rmdir "$lock/in_use" "$lock"
 
     # Not in before and after? -> not yet or no longer in use
     for uidb in $before ; do
-        for uida in $after ; do
-            [ "$uida" = "$uidb" ] || continue
-            q mkdir -p "$lock/in_use/$uida"
-            echo "$uida"
-        done
+        if in_args "$uidb" $after ; then
+            q mkdir -p "$lock/in_use/$uidb"
+            echo "$uidb"
+        fi
     done
 }
 
@@ -127,10 +129,9 @@ ponder_clean() { # lock
 
     # Not in before and after? -> not yet or no longer potentially stale
     for uidb in $before ; do
-        for uida in $after ; do
-            [ "$uida" = "$uidb" ] || continue
-            clean_if_stale "$lock" "$uida" & # Since check may take a while
-        done
+        if in_args "$uidb" $after ; then
+            clean_if_stale "$lock" "$uidb" & # Since check may take a while
+        fi
     done
 }
 
