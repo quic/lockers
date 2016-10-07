@@ -14,6 +14,7 @@ SUBJECT=$MYDIR/../$MYNAME
 ID=$MYDIR/../ssh_id.sh
 OUTDIR=$MYDIR/out
 SEM=$OUTDIR/$MYNAME
+MYHOST=$(hostname --fqdn)
 
 FAST_LOCK=$MYDIR/../fast_lock.sh
 NLOCK=$SEM/1
@@ -35,7 +36,7 @@ spinner 2 "lock to go stale"
 "$SUBJECT" "${ARGS[@]}" acquire "$SEM" 1 $$
 spinner 2 "stale_checker to run"
 OUT=$(< "$NFILE")
-result_out "Notify on stale" "$SEM $NLOCK $HOSTNAME $BAD_ID WARNING: host($HOSTNAME) \
+result_out "Notify on stale" "$SEM $NLOCK $MYHOST $BAD_ID WARNING: host($MYHOST) \
 is unable to identify live/staleness for $BAD_ID: Malformed UID" "$OUT"
 
 

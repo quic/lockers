@@ -17,7 +17,8 @@ fqdn() { "${SSH_LOGIN[@]}" "$host" hostname --fqdn ; } # host
 notifier() { echo "$3" >&2 ; } # checking_host id message
 
 notify() { # id reason
-  "${NOTIFIER[@]}" "$HOSTNAME" "$1" "WARNING: host($HOSTNAME) is unable to identify live/staleness for $1: $2"
+  local host=$(hostname --fqdn)
+  "${NOTIFIER[@]}" "$host" "$1" "WARNING: host($host) is unable to identify live/staleness for $1: $2"
 }
 
 _host() { echo "$1" | awk -F: '{print $1}' ; } # uid > host

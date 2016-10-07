@@ -90,7 +90,7 @@ BAD_ID=BADID.$$
 CHECKER_ARGS=(--on-check-fail "$MYPROG" --on-check-fail --notify)
 "$LOCKER" "${CHECKER_ARGS[@]}" lock_check "$LOCK" $$ 1
 OUT=$(< "$NFILE")
-result_out "Notify on stale" "$LOCK $HOSTNAME $BAD_ID WARNING: host($HOSTNAME) \
+result_out "Notify on stale" "$LOCK $myhost $BAD_ID WARNING: host($myhost) \
 is unable to identify live/staleness for $BAD_ID: Malformed UID" "$OUT"
 
 

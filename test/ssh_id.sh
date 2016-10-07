@@ -55,7 +55,7 @@ result "Not is_stale malformed"
 
 notification=$("$ID" --on-check-fail echo is_stale "$host_uid")
 result_out "is_stale notifier" \
-    "$HOSTNAME $host_uid WARNING: host($HOSTNAME) is unable to identify live/staleness for $host_uid: \
+    "$myhost $host_uid WARNING: host($myhost) is unable to identify live/staleness for $host_uid: \
 FQDN Missmatch" "$notification"
 
 if [ "$1" = "--full" ] ; then # not good for automated tests.
@@ -78,7 +78,7 @@ result "Not is_stale dead mismatch(short) host_uid($host_uid)"
 
 notification=$("$ID" --on-check-fail echo is_stale "$host_uid")
 result_out "is_stale dead notifier" \
-    "$HOSTNAME $host_uid WARNING: host($HOSTNAME) is unable to identify live/staleness for $host_uid: \
+    "$myhost $host_uid WARNING: host($myhost) is unable to identify live/staleness for $host_uid: \
 FQDN Missmatch" "$notification"
 
 exit $RESULT
