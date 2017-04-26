@@ -51,6 +51,14 @@ refresh_find_stale() {
     fi
 }
 
+is_check_needed() { # lock uid
+    local lock=$1 uid=$2
+    [ -z "$GRACE_SECONDS" ] && return 0
+
+    refresh_find_stale
+    [ -n "$(find "$lock/in_use/$uid" -type d "${FIND_STALE[@]}"))" ]
+}
+
 clean_if_stale() { # lock uid
     local lock=$1 uid=$2
     q touch -c "$lock/in_use/$uid" # delay subsequent checks
@@ -114,11 +122,11 @@ ids_need_check() { # lock > potentially_stale_ids
 }
 
 ponder_clean() { # lock
-    local lock=$1 uidb uida
+    local lock=$1 uid
 
-    local before=$(ids_need_check "$lock")
-    debug "ids_need_check before: $before"
-    [ -n "$before" ] || return
+    local uids=$(ids_need_check "$lock")
+    debug "ids_need_check: $uids"
+    [ -n "$uids" ] || return
 
     # Increase the chances that someone else checks instead of us by using
     # a random offset, the first one to get there will prevent subsequent
@@ -129,15 +137,9 @@ ponder_clean() { # lock
         sleep $delay
     fi
 
-    local after=$(ids_need_check "$lock")
-    debug "ids_need_check after: $after"
-    [ -n "$after" ] || return
-
-    # Not in before and after? -> not yet or no longer potentially stale
-    for uidb in $before ; do
-        if in_args "$uidb" $after ; then
-            clean_if_stale "$lock" "$uidb" & # Since check may take a while
-        fi
+    for uid in $uids ; do
+        is_check_needed "$lock" "$uid" || continue
+        clean_if_stale "$lock" "$uid"
     done
 }
 
