@@ -160,7 +160,7 @@ lock() { # lock id [stale_seconds] # => 10 critical error (stop spinning!)
 
     lock_nocheck "$lock" "$id" ; rtn=$?
     q rmdir "$lock/in_use/$id" "$lock"/in_use "$lock"
-    q-shell-init ponder_clean "$lock" &
+    q-shell-init ponder_clean "$lock"
     return $rtn
 }
 
@@ -176,7 +176,7 @@ lock_check() { # lock id # => 10 critical error
     local owner=$("${FAST_LOCKER[@]}" owner "$lock")
     clean_if_stale "$lock" "$owner"
 
-    q-shell-init ponder_clean "$lock" &
+    q-shell-init ponder_clean "$lock"
 
     lock_nocheck "$lock" "$id"
 }
@@ -189,7 +189,7 @@ unlock() { # lock id [stale_seconds]
     "${FAST_LOCKER[@]}" unlock "$lock" "$id"
 
     q rmdir "$lock/in_use/$id" "$lock"/in_use "$lock"
-    q-shell-init ponder_clean "$lock" &
+    q-shell-init ponder_clean "$lock"
 }
 
 owner() { # lock > id
