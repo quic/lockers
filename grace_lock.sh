@@ -43,6 +43,14 @@ is_stale() {  # id
 # Create a find option to find files newer than seconds ago
 newer_seconds() { date -d "$1 seconds ago" ; } # seconds > newerdt date
 
+refresh_find_stale() {
+    if [ -z "$GRACE_SECONDS" ] ; then
+        FIND_STALE=()
+    else
+        FIND_STALE=('!' -newermt "$(newer_seconds "$GRACE_SECONDS")")
+    fi
+}
+
 clean_if_stale() { # lock uid
     local lock=$1 uid=$2
     q touch -c "$lock/in_use/$uid" # delay subsequent checks
@@ -98,10 +106,8 @@ ids_need_check() { # lock > potentially_stale_ids
     local ids=$(ids_in_use "$lock")
     debug "ids_in_use: $ids"
 
-    if [ -n "$GRACE_SECONDS" ] ; then
-        stale=('!' -newermt "$(newer_seconds "$GRACE_SECONDS")")
-    fi
-    for use in $(q find "$lock/in_use" -type d "${stale[@]}") ; do
+    refresh_find_stale
+    for use in $(q find "$lock/in_use" -type d "${FIND_STALE[@]}") ; do
         [ "$use" = "$lock/in_use" ] && continue
         basename "$use"
     done
