@@ -122,7 +122,7 @@ ids_need_check() { # lock > potentially_stale_ids
 }
 
 ponder_clean() { # lock
-    local lock=$1 uid
+    local lock=$1 uid cleaned=false
 
     local uids=$(ids_need_check "$lock")
     debug "ids_need_check: $uids"
@@ -140,6 +140,10 @@ ponder_clean() { # lock
     for uid in $uids ; do
         is_check_needed "$lock" "$uid" || continue
         clean_if_stale "$lock" "$uid"
+
+        # leave things cleaner than when we started in a constrained fashion
+        $cleaned && return
+        cleaned=true
     done
 }
 
