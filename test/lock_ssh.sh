@@ -58,13 +58,9 @@ result "Cannot relock by first($first)" "$OUT"
 result "Cannot lock by second($second)" "$OUT"
 
 out "$LOCKER" unlock "$LOCK" $first
-result "Unlock by first($first)" "$OUT"
-
 out "$LOCKER" lock "$LOCK" $second
-result "Can now lock by second($second)" "$OUT"
-
+result "Unlock by first($first), lock by second($second)" "$OUT"
 out "$LOCKER" unlock "$LOCK" $second
-result "Unlock by second($second)" "$OUT"
 
 
 "$LOCKER" lock "$LOCK" $second

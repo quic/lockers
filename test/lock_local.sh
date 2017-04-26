@@ -37,11 +37,10 @@ result_out "owner_pid should be first($first)" "$first" "$OUT"
 
 ! outerr "$LOCKER" lock "$LOCK" $second ; result "Cannot lock by second($second)" "$OUT"
 
-out "$LOCKER" unlock "$LOCK" $first ; result "Unlock by first($first)" "$OUT"
-
-out "$LOCKER" lock "$LOCK" $second ; result "Can now lock by second($second)" "$OUT"
-
-out "$LOCKER" unlock "$LOCK" $second ; result "Unlock by second($second)" "$OUT"
+out "$LOCKER" unlock "$LOCK" $first
+out "$LOCKER" lock "$LOCK" $second
+result "Unlock by first($first), lock by second($second)" "$OUT"
+out "$LOCKER" unlock "$LOCK" $second
 
 "$LOCKER" lock "$LOCK" $second
 kill_wait $second > /dev/null 2>&1

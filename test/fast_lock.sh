@@ -40,11 +40,10 @@ result_out "second now in ids_in_use" "first second" "$OUT"
 out "$LOCKER" ids_in_use "$LOCK" ;
 result_out "clean_stale_ids cleaned second" "first" "$OUT"
 
-out "$LOCKER" unlock "$LOCK" first ; result "Unlock by first" "$OUT"
-
-out "$LOCKER" lock "$LOCK" second ; result "Can now lock by second" "$OUT"
-
-out "$LOCKER" unlock "$LOCK" second ; result "Unlock by second" "$OUT"
+out "$LOCKER" unlock "$LOCK" first
+out "$LOCKER" lock "$LOCK" second
+result "Unlock by first($first), lock by second($second)" "$OUT"
+out "$LOCKER" unlock "$LOCK" second
 
 rmdir "$OUTDIR"
 

@@ -40,13 +40,9 @@ result "Cannot relock by first($first)" "$OUT"
 result "Cannot lock by second($second)" "$OUT"
 
 out "$LOCKER" false unlock "$LOCK" $first
-result "Unlock by first($first)" "$OUT"
-
 out "$LOCKER" false lock "$LOCK" $second
-result "Can now lock by second($second)" "$OUT"
-
+result "Unlock by first($first), lock by second($second)" "$OUT"
 out "$LOCKER" false unlock "$LOCK" $second
-result "Unlock by second($second)" "$OUT"
 
 
 # Stale locks
