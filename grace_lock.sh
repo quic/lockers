@@ -169,16 +169,14 @@ lock_check() { # lock id # => 10 critical error
     local lock=$1 id=$2  rtn
 
     lock_nocheck "$lock" "$id" ; rtn=$?
-    [ $rtn -eq 0 -o $rtn -ge 10 ] && return $rtn
-
+    if [ $rtn -ne 0 -a $rtn -lt 10 ] ; then
+        local owner=$("${FAST_LOCKER[@]}" owner "$lock")
+        clean_if_stale "$lock" "$owner"
+        lock_nocheck "$lock" "$id" ; rtn=$?
+    fi
     q rmdir "$lock/in_use/$id" "$lock"/in_use "$lock"
-
-    local owner=$("${FAST_LOCKER[@]}" owner "$lock")
-    clean_if_stale "$lock" "$owner"
-
     q-shell-init ponder_clean "$lock"
-
-    lock_nocheck "$lock" "$id"
+    return $rtn
 }
 
 unlock() { # lock id [stale_seconds]
