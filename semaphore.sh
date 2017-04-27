@@ -78,7 +78,7 @@ release() { # semaphore [id]
     for lock in "$sem"/* ; do
          [ "$lock" = "$sem"/'*' ] && continue
          "${LOCKER[@]}" is_mine "$lock" "${id[@]}" || continue
-         "${LOCKER[@]}" unlock "$lock" "${id[@]}" || continue
+         "${LOCKER[@]}" unlock "$lock" "${id[@]}"
          rmdir "$sem" 2> /dev/null
          info "$sem released by $id"
          return 0
