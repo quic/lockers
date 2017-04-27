@@ -121,12 +121,12 @@ ids_need_check() { # lock > potentially_stale_ids
     done
 }
 
-ponder_clean() { # lock
-    local lock=$1 uid cleaned=false
+ponder_clean() { # lock skip_uid
+    local lock=$1 skip=$2 uid cleaned=false
 
     local uids=$(ids_need_check "$lock")
     debug "ids_need_check: $uids"
-    [ -n "$uids" ] || return
+    [ -z "$uids" -o "$skip" = "$uids" ] && return
 
     # Increase the chances that someone else checks instead of us by using
     # a random offset, the first one to get there will prevent subsequent
@@ -138,6 +138,7 @@ ponder_clean() { # lock
     fi
 
     for uid in $uids ; do
+        [ "$skip" = "$uid" ] && continue
         is_check_needed "$lock" "$uid" || continue
         clean_if_stale "$lock" "$uid"
 
@@ -160,7 +161,7 @@ lock() { # lock id [stale_seconds] # => 10 critical error (stop spinning!)
 
     lock_nocheck "$lock" "$id" ; rtn=$?
     q rmdir "$lock/in_use/$id" "$lock"/in_use "$lock"
-    q-shell-init ponder_clean "$lock"
+    q-shell-init ponder_clean "$lock" "$id"
     return $rtn
 }
 
@@ -175,7 +176,7 @@ lock_check() { # lock id # => 10 critical error
         lock_nocheck "$lock" "$id" ; rtn=$?
     fi
     q rmdir "$lock/in_use/$id" "$lock"/in_use "$lock"
-    q-shell-init ponder_clean "$lock"
+    q-shell-init ponder_clean "$lock" "$id"
     return $rtn
 }
 
