@@ -58,47 +58,47 @@ ssh_uid() { # fqdn_host pid > uid (if running)
 }
 
 is_valid_uid() {  # uid # (SETS host pid starttime boottime)
-   local uid=$1
-   host=$(_host "$uid")
-   pid=$(_pid "$uid")
-   starttime=$(_starttime "$uid")
-   boottime=$(_boottime "$uid")
-   [ -n "$host" ] && [ -n "$pid" ] && [ -n "$starttime" ] && [ -n "$boottime" ]
+    local uid=$1
+    host=$(_host "$uid")
+    pid=$(_pid "$uid")
+    starttime=$(_starttime "$uid")
+    boottime=$(_boottime "$uid")
+    [ -n "$host" ] && [ -n "$pid" ] && [ -n "$starttime" ] && [ -n "$boottime" ]
 }
 
 validate_uid() {  # uid # (SETS host pid starttime boottime)
-   local uid=$1
-   if ! is_valid_uid "$uid" ; then
-       notify "$uid" "Malformed UID"
-       return $ERR_MALFORMED_UID
-   fi
+    local uid=$1
+    if ! is_valid_uid "$uid" ; then
+        notify "$uid" "Malformed UID"
+        return $ERR_MALFORMED_UID
+    fi
 }
 
 host() { validate_uid "$1" && echo "$host" ; } # uid > host
 pid() {  validate_uid "$1" && echo "$pid" ; } # uid > pid
 
 is_stale() {  # uid
-   local uid=$1
-   [ -z "$uid" ] && return $ERR_MISSING_ARG
+    local uid=$1
+    [ -z "$uid" ] && return $ERR_MISSING_ARG
 
-   local host pid
-   validate_uid "$uid" || return
+    local host pid
+    validate_uid "$uid" || return
 
-   local ssh_uid rtn
-   ssh_uid=$(ssh_uid "$host" "$pid") ; rtn=$?
-   if [ $rtn -gt 1 ] ; then
-      if [ $rtn = $ERR_HOST_INCOMPATIBLE ] ; then
-          notify "$uid" "Host Incompatible"
-      elif [ $rtn = $ERR_FQDN_MISSMATCH ] ; then
-          notify "$uid" "FQDN Missmatch"
-      else
-          notify "$uid" "Unknown"
-      fi
-      return $rtn
-   fi
+    local ssh_uid rtn
+    ssh_uid=$(ssh_uid "$host" "$pid") ; rtn=$?
+    if [ $rtn -gt 1 ] ; then
+        if [ $rtn = $ERR_HOST_INCOMPATIBLE ] ; then
+            notify "$uid" "Host Incompatible"
+        elif [ $rtn = $ERR_FQDN_MISSMATCH ] ; then
+            notify "$uid" "FQDN Missmatch"
+        else
+            notify "$uid" "Unknown"
+        fi
+        return $rtn
+    fi
 
-   [ -z "$ssh_uid" ] && return 0 # no starttime
-   [ "$ssh_uid" != "$uid" ] # different boottime
+    [ -z "$ssh_uid" ] && return 0 # no starttime
+    [ "$ssh_uid" != "$uid" ] # different boottime
 }
 
 uid() { # pid > uid
