@@ -3,6 +3,11 @@
 # Copyright (c) 2013, Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
 
+ERR_MALFORMED_UID=20
+
+d() { [ "$DEBUG" = "DEBUG" ] && { echo "$(date) " ; } } # > date(debug) | nothing
+error() { echo "$(d)$1" >&2 ; exit $2 ; }
+
 uid() { "${ID_HELPER[@]}" uid "$1" ; } # pid|uid > uid
 pid() { "${ID_HELPER[@]}" pid "$1" ; } # pid|uid > pid
 host() { "${ID_HELPER[@]}" host "$1" ; } # uid > host
@@ -101,16 +106,20 @@ case "$action" in
     owner_pid) pid "$("${LOCKER[@]}" "owner" "$lock")" ;;
     owner_host) host "$("${LOCKER[@]}" "owner" "$lock")" ;;
 
-    lock|unlock)
-        id=$1 ; shift;
-        [ -n "$1" ] && GRACE_SECONDS=$1
-        LOCKER+=(--grace-seconds "$GRACE_SECONDS")
-        "${LOCKER[@]}" "$action" "$lock" "$(uid "$id")"
-    ;;
-
-    lock_check|fast_lock|is_mine)
+    lock|unlock|lock_check|fast_lock|is_mine)
         id=$1 ; shift
-        "${LOCKER[@]}" "$action" "$lock" "$(uid "$id")" "$@"
+        uid=$(uid "$id") || error "obtaining UID for ID($1)" "$ERR_MALFORMED_UID"
+        case "$action" in
+            lock|unlock)
+                [ -n "$1" ] && GRACE_SECONDS=$1
+                LOCKER+=(--grace-seconds "$GRACE_SECONDS")
+                "${LOCKER[@]}" "$action" "$lock" "$uid"
+            ;;
+
+            lock_check|fast_lock|is_mine)
+                "${LOCKER[@]}" "$action" "$lock" "$uid" "$@"
+            ;;
+        esac
     ;;
 
     is_host_compatible) compatible "$host" ;;
