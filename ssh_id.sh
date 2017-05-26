@@ -3,14 +3,18 @@
 # Copyright (c) 2013, Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
 
-qerr() { "$@" 2>/dev/null ; } # execute a cmd and quiet the stderr
-
 SSH_LOGIN=(ssh -o StrictHostKeyChecking=yes -o PasswordAuthentication=no)
 
 ERR_HOST_INCOMPATIBLE=10
 ERR_FQDN_MISSMATCH=11
+ERR_UID_FETCH=12
 ERR_MALFORMED_UID=20
 ERR_MISSING_ARG=127
+
+qerr() { "$@" 2>/dev/null ; } # execute a cmd and quiet the stderr
+
+d() { [ "$DEBUG" = "DEBUG" ] && { echo "$(date) " ; } } # > date(debug) | nothing
+error() { echo "$(d)$1" >&2 ; exit $2 ; }
 
 fqdn() { "${SSH_LOGIN[@]}" "$host" hostname --fqdn ; } # host
 
@@ -98,12 +102,16 @@ is_stale() {  # uid
 }
 
 uid() { # pid > uid
-    local starttime=$(qerr awk '{print $22}' /proc/$1/stat) # starttime=22
+    local pid=$1
+    [ -z "$pid" ] && return $ERR_MISSING_ARG
+    local starttime=$(qerr awk '{print $22}' /proc/"$pid"/stat) # starttime=22
     [ -z "$starttime" ] && return 1 # no longer running
     local boot=$(qerr awk '$1 == "btime" {print $2}' /proc/stat)
+    [ -z "$boot" ] && error "Cannot determine local host boottime" $ERR_UID_FETCH
     local host=$(hostname --fqdn)
+    [ -z "$host" ] && error "Cannot determine local hostname" $ERR_UID_FETCH
 
-    echo "$host:$1:$starttime:$boot"
+    echo "$host:$pid:$starttime:$boot"
 }
 
 usage() { # error_message
