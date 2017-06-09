@@ -56,7 +56,7 @@ is_check_needed() { # lock uid
     [ -z "$GRACE_SECONDS" ] && return 0
 
     refresh_find_stale
-    [ -n "$(find "$lock/in_use/$uid" -type d "${FIND_STALE[@]}"))" ]
+    [ -n "$(q find "$lock/in_use/$uid" -type d "${FIND_STALE[@]}"))" ]
 }
 
 clean_if_stale() { # lock uid
