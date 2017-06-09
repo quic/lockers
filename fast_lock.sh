@@ -36,7 +36,9 @@
 # Lock Directory Layout:
 #
 #  <lock_path>/                         # top level dir, in place of lock file
-#  <lock_path>/markers/                 # holds potential future locks
+#  <lock_path>/build/                   # holds proposed locks
+#  <lock_path>/build/<id>/owner/<id>    # proposed future lock
+#  <lock_path>/markers/                 # holds potential future locks (deprecated)
 #  <lock_path>/markers/<id>/owner/<id>  # potential future lock
 #  <lock_path>/owner/<id>               # represents the locked state
 #
@@ -50,10 +52,12 @@ error() { echo "$(d) ERROR - $1" >&2 ; exit $2 ; }
 # paths... > basenames... (one line each)
 basenames() { local p ; for p in "$@" ; do basename "$p" ; done ; }
 
-# ---------- markers are potential locks, not yet owners ----------
+# ---------- markers are potential locks, not yet owners (deprecated) ----------
 
-# id
-delete_markdirs() { q rmdir "$MARKERS/$1/owner" "$MARKERS/$1" "$MARKERS" ; }
+delete_markdirs() { # id
+    local id=$1
+    q rmdir "$MARKERS/$id/owner" "$MARKERS/$id" "$MARKERS"
+}
 
 delete_marker() { # id
     local id=$1
@@ -64,43 +68,40 @@ delete_marker() { # id
 # > markerids_in_use
 marker_ids() { ( shopt -s nullglob ; basenames "$MARKERS"/* ) }
 
-clean_markers() {
-    local mids=($(marker_ids))
-    [ -z "$mids" ] && return
-    sleep 2
-    # deleting marker dirs without a marker can cause really
-    # slow creates to fail (oh well, they will have to try
-    # again, locking is a privellege not a right).  This helps
-    # remove stale dirs without a marker.
-    local mid
-    for mid in "${mids[@]}" ; do
-        delete_markdirs "$mid"
-    done
-    q rmdir "$BASE"
+# ---------- proposals ----------
+
+# > proposal_ids_in_use
+proposal_ids() { ( shopt -s nullglob ; basenames "$BUILD"/* ) }
+
+clean_proposal() { # id
+    local id=$1
+    local build=$BUILD/$id/owner
+    q rm "$build/$id"
+    q rmdir "$build" "$BUILD/$id" "$BUILD"
 }
 
-create_marker() { # id > [markdir] (if success)
+build_proposal() { # id > [proposal_dir] (if success)
     local id=$1
-    local markdir=$MARKERS/$id/owner
-    local marker=$MARKERS/$id/owner/$id
+    local build=$BUILD/$id/owner
+    local proposal=$build/$id
 
-    q mkdir -p "$markdir"
-    q touch "$marker"
-    [ -f "$marker" ] && echo "$markdir"
+    q mkdir -p "$build"
+    q touch "$proposal"
+    [ -f "$proposal" ] && echo "$build"
 }
 
 # ---------- API ------------
 
-ids_in_use() { (owner ; marker_ids) | sort --unique ; } # > ids...
+ids_in_use() { (owner ; marker_ids ; proposal_ids) | sort --unique ; } # > ids...
 
 clean_stale_ids() { # [ids]...
     local id
     for id in "$@" ; do
         debug "cleaning stale id $id"
         delete_marker "$id"
+        clean_proposal "$id"
         q unlock "$id"
     done
-    clean_markers
 }
 
 lock() { # id # => 10 critical error (stop spinning!)
@@ -109,12 +110,12 @@ lock() { # id # => 10 critical error (stop spinning!)
 
     [ -f "$OWNER/$id" ] && error "$BASE already locked by $id" 20
 
-    local markdir=$(create_marker "$id")
-    [ -n "$markdir" ] || return 2
+    local build=$(build_proposal "$id")
+    [ -n "$build" ] || return 2
 
-    debug "attempting to lock with $markdir"
+    debug "attempting to lock with $build"
     # In rare cases, mv prompts, so us -f to prevent blocking by prompt
-    q mv -f "$markdir" "$BASE" ; rtn=$?
+    q mv -f "$build" "$BASE" ; rtn=$?
     if [ $rtn = 0 ] ; then
         info "$BASE locked by $id"
     else
@@ -122,7 +123,7 @@ lock() { # id # => 10 critical error (stop spinning!)
         info "$BASE failed to lock for $id"
     fi
 
-    delete_marker "$id"
+    clean_proposal "$id"
     return $rtn
 }
 
@@ -134,7 +135,6 @@ unlock() { # id
     q rmdir "$OWNER" "$BASE"
 
     info "$BASE unlocked by $id"
-    clean_markers &
 }
 
 owner() { ( shopt -s nullglob ; basenames "$BASE"/owner/* ) ; } # > id
@@ -186,6 +186,7 @@ ACTION=$1 ; [ -n "$ACTION" ] || usage "unspecified <ACTION>"
 BASE=$2 ; [ -n "$BASE" ] || usage "action '$ACTION' needs <LOCK_PATH>"
 shift 2
 
+BUILD=$BASE/build
 MARKERS=$BASE/markers
 OWNER=$BASE/owner
 
