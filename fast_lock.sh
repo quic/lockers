@@ -45,7 +45,7 @@ q() { "$@" 2>/dev/null ; } # execute a cmd and quiet the stderr
 d() { [ "$DEBUG" = "DEBUG" ] && { echo "$(date) " ; } } # > date(debug) | nothing
 debug() { [ "$DEBUG" = "DEBUG" ] && echo "$(d)$@" >&2 ; }
 info() { debug "$@" ; [ "$DEBUG" = "INFO" ] && echo "$(d)$@" >&2 ; }
-error() { echo "$(d)$1" >&2 ; exit $2 ; }
+error() { echo "$(d) ERROR - $1" >&2 ; exit $2 ; }
 
 # paths... > basenames... (one line each)
 basenames() { local p ; for p in "$@" ; do basename "$p" ; done ; }

@@ -15,7 +15,7 @@ q-shell-init() { # execute cmd, quiet potential bash startup error message
 debug_date() { [ "$DEBUG" = "DEBUG" ] && { echo "$(date) " ; } }
 debug() { [ "$DEBUG" = "DEBUG" ] && echo "$(debug_date)$@" >&2 ; }
 info() { debug "$@" ; [ "$DEBUG" = "INFO" ] && echo "$(debug_date)$@" >&2 ; }
-error() { echo "$(debug_date)$1" >&2 ; exit $2 ; }
+error() { echo "$(debug_date) ERROR - $1" >&2 ; exit $2 ; }
 
 args() { # action needed optional [args]...
     local func=$1 needed=$2 optional=$3 n s min=0 supplied=0 ; shift 3

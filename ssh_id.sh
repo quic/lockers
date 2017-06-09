@@ -14,7 +14,7 @@ ERR_MISSING_ARG=127
 qerr() { "$@" 2>/dev/null ; } # execute a cmd and quiet the stderr
 
 d() { [ "$DEBUG" = "DEBUG" ] && { echo "$(date) " ; } } # > date(debug) | nothing
-error() { echo "$(d)$1" >&2 ; exit $2 ; }
+error() { echo "$(d) ERROR - $1" >&2 ; exit $2 ; }
 
 fqdn() { "${SSH_LOGIN[@]}" "$host" hostname --fqdn ; } # host
 

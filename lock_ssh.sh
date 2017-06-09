@@ -6,7 +6,7 @@
 ERR_MALFORMED_UID=20
 
 d() { [ "$DEBUG" = "DEBUG" ] && { echo "$(date) " ; } } # > date(debug) | nothing
-error() { echo "$(d)$1" >&2 ; exit $2 ; }
+error() { echo "$(d) ERROR - $1" >&2 ; exit $2 ; }
 
 uid() { "${ID_HELPER[@]}" uid "$1" ; } # pid|uid > uid
 pid() { "${ID_HELPER[@]}" pid "$1" ; } # pid|uid > pid
