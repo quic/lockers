@@ -52,19 +52,17 @@ basenames() { local p ; for p in "$@" ; do basename "$p" ; done ; }
 
 # ---------- markers are potential locks, not yet owners ----------
 
-delete_markdirs() { # id
-    local id=$1
-    q rmdir "$BASE/markers/$id/owner" "$BASE/markers/$id" "$BASE/markers"
-}
+# id
+delete_markdirs() { q rmdir "$MARKERS/$1/owner" "$MARKERS/$1" "$MARKERS" ; }
 
 delete_marker() { # id
     local id=$1
-    q rm "$BASE/markers/$id/owner/$id"
+    q rm "$MARKERS/$id/owner/$id"
     delete_markdirs "$id"
 }
 
 # > markerids_in_use
-marker_ids() { ( shopt -s nullglob ; basenames "$BASE/markers"/* ) }
+marker_ids() { ( shopt -s nullglob ; basenames "$MARKERS"/* ) }
 
 clean_markers() {
     local mids=($(marker_ids))
@@ -83,8 +81,8 @@ clean_markers() {
 
 create_marker() { # id > [markdir] (if success)
     local id=$1
-    local markdir=$BASE/markers/$id/owner
-    local marker=$BASE/markers/$id/owner/$id
+    local markdir=$MARKERS/$id/owner
+    local marker=$MARKERS/$id/owner/$id
 
     q mkdir -p "$markdir"
     q touch "$marker"
@@ -109,7 +107,7 @@ lock() { # id # => 10 critical error (stop spinning!)
     local id=$1  rtn
     [ -n "$id" ] || usage "action '$ACTION' needs <ID>"
 
-    [ -f "$BASE/owner/$id" ] && error "$BASE already locked by $id" 20
+    [ -f "$OWNER/$id" ] && error "$BASE already locked by $id" 20
 
     local markdir=$(create_marker "$id")
     [ -n "$markdir" ] || return 2
@@ -132,8 +130,8 @@ unlock() { # id
     local id=$1
     [ -n "$id" ] || usage "action '$ACTION' needs <ID>"
 
-    rm "$BASE/owner/$id" # unlock
-    q rmdir "$BASE/owner" "$BASE"
+    rm "$OWNER/$id" # unlock
+    q rmdir "$OWNER" "$BASE"
 
     info "$BASE unlocked by $id"
     clean_markers &
@@ -187,5 +185,8 @@ done
 ACTION=$1 ; [ -n "$ACTION" ] || usage "unspecified <ACTION>"
 BASE=$2 ; [ -n "$BASE" ] || usage "action '$ACTION' needs <LOCK_PATH>"
 shift 2
+
+MARKERS=$BASE/markers
+OWNER=$BASE/owner
 
 "$ACTION" "$@"
