@@ -3,6 +3,11 @@
 # Copyright (c) 2013, Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
 
+ERR_MALFORMED_UID=20
+
+d() { [ "$DEBUG" = "DEBUG" ] && { echo "$(date) " ; } } # > date(debug) | nothing
+error() { echo "$(d) ERROR - $1" >&2 ; exit $2 ; }
+
 uid() { "${ID_HELPER[@]}" uid "$1" ; } # pid|uid > uid
 pid() { "${ID_HELPER[@]}" pid "$1" ; } # pid|uid > pid
 
@@ -53,20 +58,24 @@ action=$1
 lock=$2
 shift 2
 
-LOCKER=("$mydir"/check_lock.sh $DEBUG)
-CLOCKER=("${LOCKER[@]}" "${STALE_CHECKER[@]}")
+[ "$action" = "fast_lock" ] && action=lock_nocheck
+
+locker=("$mydir"/check_lock.sh $DEBUG)
+case "$action" in
+    owner|owner_pid|lock|unlock)
+        locker=("${locker[@]}" "${STALE_CHECKER[@]}")
+    ;;
+esac
 
 case "$action" in
-    owner) "${CLOCKER[@]}" "owner" "$lock" ;;
-    owner_nocheck) "${LOCKER[@]}" "owner_nocheck" "$lock" ;;
-    owner_pid) pid "$("${CLOCKER[@]}" "owner" "$lock")" ;;
-    owner_pid_nocheck) pid "$("${LOCKER[@]}" "owner_nocheck" "$lock")" ;;
+    owner|owner_nocheck) "${locker[@]}" "$action" "$lock" ;;
+    owner_pid) pid "$("${locker[@]}" "owner" "$lock")" ;;
+    owner_pid_nocheck) pid "$("${locker[@]}" "owner_nocheck" "$lock")" ;;
 
-    lock|unlock) "${CLOCKER[@]}" "$action" "$lock" "$(uid "$1")" ;;
-
-    lock_nocheck|fast_lock|is_mine)
-        [ "$action" = "fast_lock" ] && action=lock_nocheck
-        "${LOCKER[@]}" "$action" "$lock" "$(uid "$1")"
+    lock|unlock|lock_nocheck|fast_lock|is_mine)
+        id=$1 ; shift
+        uid=$(uid "$id") || error "obtaining UID for ID($id)" "$ERR_MALFORMED_UID"
+        "${locker[@]}" "$action" "$lock" "$uid"
     ;;
 
     *) usage "unknown action ($action)" ;;

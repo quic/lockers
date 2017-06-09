@@ -108,7 +108,7 @@ case "$action" in
 
     lock|unlock|lock_check|fast_lock|is_mine)
         id=$1 ; shift
-        uid=$(uid "$id") || error "obtaining UID for ID($1)" "$ERR_MALFORMED_UID"
+        uid=$(uid "$id") || error "obtaining UID for ID($id)" "$ERR_MALFORMED_UID"
         case "$action" in
             lock|unlock)
                 [ -n "$1" ] && GRACE_SECONDS=$1
