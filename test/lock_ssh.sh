@@ -55,7 +55,7 @@ result "second($second) ! is_mine" "$OUT"
 result "Cannot relock by first($first)" "$OUT"
 
 ! outerr "$LOCKER" lock "$LOCK" $second
-result "Cannot lock by second($second)" "$OUT"
+result "Cannot lock by second($second), locked by first" "$OUT"
 
 out "$LOCKER" unlock "$LOCK" $first
 out "$LOCKER" lock "$LOCK" $second
@@ -73,12 +73,16 @@ out "$LOCKER" --grace-seconds 1 lock "$LOCK" $first
 result "Dead lock by second($second), can lock by first($first)" "$OUT"
 
 out "$LOCKER" unlock "$LOCK" $first
+stable_process & second=$!
 "$LOCKER" lock "$LOCK" $second
+kill_wait $second > /dev/null 2>&1
 sleep 2 # make the second stale
 out "$LOCKER" lock_check "$LOCK" $first
 result "Dead lock by second($second), can lock_check by first($first)" "$OUT"
 
 out "$LOCKER" unlock "$LOCK" $first
+! outerr "$LOCKER" lock "$LOCK" $second
+result "Cannot lock by dead second($second)" "$OUT"
 
 
 BAD_ID=BADID.$$
