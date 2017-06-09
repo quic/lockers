@@ -2,14 +2,13 @@
 #
 # Copyright (c) 2013, Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
-
 #
 # Design:
 #
 # This lock can provide these 2 primary conditions:
 #
-# 1) Provide an atomic lock which can only succeed for one locker
-# 2) Provide an unlock which allows #1 to succeed
+# 1) Provide an atomic lock which can only succeed for one locker until unlocked
+# 2) Provide an unlock which honors condition #1
 #
 # With some help, it can also provide this third condition
 #
@@ -33,6 +32,13 @@
 #      delete the id file.  As long as the id file represents a unique locker
 #      (part of the contract), it is safe to delete by anyone at anytime once
 #      the locker is no longer running.
+#
+# Lock Directory Layout:
+#
+#  <lock_path>/                         # top level dir, in place of lock file
+#  <lock_path>/markers/                 # holds potential future locks
+#  <lock_path>/markers/<id>/owner/<id>  # potential future lock
+#  <lock_path>/owner/<id>               # represents the locked state
 #
 
 q() { "$@" 2>/dev/null ; } # execute a cmd and quiet the stderr
@@ -128,10 +134,10 @@ lock() { # lock id # => 10 critical error (stop spinning!)
     # In rare cases, mv prompts, so us -f to prevent blocking by prompt
     q mv -f "$markdir" "$lock" ; rtn=$?
     if [ $rtn = 0 ] ; then
-        info "$lock locked by $2"
+        info "$lock locked by $uid"
     else
         rtn=1
-        info "$lock failed to lock for $2"
+        info "$lock failed to lock for $uid"
     fi
 
     delete_marker "$lock" "$uid"
