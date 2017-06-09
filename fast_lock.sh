@@ -61,15 +61,15 @@ basenames() { local p ; for p in "$@" ; do basename "$p" ; done ; }
 
 # ---------- markers are potential locks, not yet owners ----------
 
-delete_markdirs() { # lock uid
-    local lock=$1 uid=$2
-    q rmdir "$lock/markers/$uid/owner" "$lock/markers/$uid" "$lock/markers"
+delete_markdirs() { # lock id
+    local lock=$1 id=$2
+    q rmdir "$lock/markers/$id/owner" "$lock/markers/$id" "$lock/markers"
 }
 
-delete_marker() { # lock uid
-    local lock=$1 uid=$2
-    q rm "$lock/markers/$uid/owner/$uid"
-    delete_markdirs "$lock" "$uid"
+delete_marker() { # lock id
+    local lock=$1 id=$2
+    q rm "$lock/markers/$id/owner/$id"
+    delete_markdirs "$lock" "$id"
 }
 
 # lock > markerids_in_use
@@ -91,10 +91,10 @@ clean_markers() { # lock
     q rmdir "$lock"
 }
 
-create_marker() { # lock uid > [markdir] (if success)
-    local lock=$1 uid=$2
-    local markdir="$lock/markers/$uid/owner"
-    local marker="$lock/markers/$uid/owner/$uid"
+create_marker() { # lock id > [markdir] (if success)
+    local lock=$1 id=$2
+    local markdir=$lock/markers/$id/owner
+    local marker=$lock/markers/$id/owner/$id
 
     q mkdir -p "$markdir"
     q touch "$marker"
@@ -111,11 +111,11 @@ ids_in_use() { # lock > ids...
 
 clean_stale_ids() { # lock [ids]...
     args clean_stale_ids "lock" "[ids]" "$@"
-    local lock=$1 uid ; shift
-    for uid in "$@" ; do
-        debug "cleaning stale id $uid"
-        delete_marker "$lock" "$uid"
-        q unlock "$lock" "$uid"
+    local lock=$1 id ; shift
+    for id in "$@" ; do
+        debug "cleaning stale id $id"
+        delete_marker "$lock" "$id"
+        q unlock "$lock" "$id"
     done
     clean_markers "$lock"
 }
@@ -123,35 +123,35 @@ clean_stale_ids() { # lock [ids]...
 lock() { # lock id # => 10 critical error (stop spinning!)
     args fast_lock "lock id" "" "$@"
     [ $# -lt 2 ] && usage "fast_lock too few args ($@)"
-    local lock=$1 uid=$2  rtn
+    local lock=$1 id=$2  rtn
 
-    [ -f "$lock/owner/$uid" ] && error "$lock already locked by $uid" 20
+    [ -f "$lock/owner/$id" ] && error "$lock already locked by $id" 20
 
-    local markdir=$(create_marker "$lock" "$uid")
+    local markdir=$(create_marker "$lock" "$id")
     [ -n "$markdir" ] || return 2
 
     debug "attempting to lock with $markdir"
     # In rare cases, mv prompts, so us -f to prevent blocking by prompt
     q mv -f "$markdir" "$lock" ; rtn=$?
     if [ $rtn = 0 ] ; then
-        info "$lock locked by $uid"
+        info "$lock locked by $id"
     else
         rtn=1
-        info "$lock failed to lock for $uid"
+        info "$lock failed to lock for $id"
     fi
 
-    delete_marker "$lock" "$uid"
+    delete_marker "$lock" "$id"
     return $rtn
 }
 
 unlock() { # lock id
     args unlock "lock id" "" "$@"
-    local lock=$1 uid=$2
+    local lock=$1 id=$2
 
-    rm "$lock/owner/$uid" # unlock
+    rm "$lock/owner/$id" # unlock
     q rmdir "$lock/owner" "$lock"
 
-    info "$lock unlocked by $uid"
+    info "$lock unlocked by $id"
     clean_markers "$lock" &
 }
 
