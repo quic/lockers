@@ -47,7 +47,7 @@ kill_wait $second > /dev/null 2>&1
 out "$LOCKER" lock "$LOCK" $first ; result "Dead lock by second($second), can lock by first($first)" "$OUT"
 
 "$LOCKER" unlock "$LOCK" $first
-! out "$LOCKER" lock "$LOCK" $second ; result "Cannot lock by dead second($second)" "$OUT"
+! outerr "$LOCKER" lock "$LOCK" $second ; result "Cannot lock by dead second($second)" "$OUT"
 
 
 [ $RESULT -eq 0 ] && rm -rf "$LOCK"

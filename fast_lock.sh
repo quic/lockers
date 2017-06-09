@@ -47,37 +47,27 @@ debug() { [ "$DEBUG" = "DEBUG" ] && echo "$(d)$@" >&2 ; }
 info() { debug "$@" ; [ "$DEBUG" = "INFO" ] && echo "$(d)$@" >&2 ; }
 error() { echo "$(d)$1" >&2 ; exit $2 ; }
 
-args() { # action needed optional [args]...
-    local func=$1 needed=$2 optional=$3 n s min=0 supplied=0 ; shift 3
-    for n in $needed ; do  min=$((min+1)) ;  done
-    for s in "$@" ; do supplied=$((supplied +1)) ; done
-
-    [ $supplied -ge $min ] && return
-    usage "'$func' takes <$needed> [$optional], given ($*)"
-}
-
 # paths... > basenames... (one line each)
 basenames() { local p ; for p in "$@" ; do basename "$p" ; done ; }
 
 # ---------- markers are potential locks, not yet owners ----------
 
-delete_markdirs() { # lock id
-    local lock=$1 id=$2
-    q rmdir "$lock/markers/$id/owner" "$lock/markers/$id" "$lock/markers"
+delete_markdirs() { # id
+    local id=$1
+    q rmdir "$BASE/markers/$id/owner" "$BASE/markers/$id" "$BASE/markers"
 }
 
-delete_marker() { # lock id
-    local lock=$1 id=$2
-    q rm "$lock/markers/$id/owner/$id"
-    delete_markdirs "$lock" "$id"
+delete_marker() { # id
+    local id=$1
+    q rm "$BASE/markers/$id/owner/$id"
+    delete_markdirs "$id"
 }
 
-# lock > markerids_in_use
-marker_ids() { ( shopt -s nullglob ; basenames "$1/markers"/* ) }
+# > markerids_in_use
+marker_ids() { ( shopt -s nullglob ; basenames "$BASE/markers"/* ) }
 
-clean_markers() { # lock
-    local lock=$1 mids
-    mids=($(marker_ids "$lock"))
+clean_markers() {
+    local mids=($(marker_ids))
     [ -z "$mids" ] && return
     sleep 2
     # deleting marker dirs without a marker can cause really
@@ -86,15 +76,15 @@ clean_markers() { # lock
     # remove stale dirs without a marker.
     local mid
     for mid in "${mids[@]}" ; do
-        delete_markdirs "$lock" "$mid"
+        delete_markdirs "$mid"
     done
-    q rmdir "$lock"
+    q rmdir "$BASE"
 }
 
-create_marker() { # lock id > [markdir] (if success)
-    local lock=$1 id=$2
-    local markdir=$lock/markers/$id/owner
-    local marker=$lock/markers/$id/owner/$id
+create_marker() { # id > [markdir] (if success)
+    local id=$1
+    local markdir=$BASE/markers/$id/owner
+    local marker=$BASE/markers/$id/owner/$id
 
     q mkdir -p "$markdir"
     q touch "$marker"
@@ -103,66 +93,57 @@ create_marker() { # lock id > [markdir] (if success)
 
 # ---------- API ------------
 
-ids_in_use() { # lock > ids...
-    args ids_in_use "lock" "" "$@"
-    local lock=$1
-    (owner "$lock" ; marker_ids "$lock") | sort --unique
-}
+ids_in_use() { (owner ; marker_ids) | sort --unique ; } # > ids...
 
-clean_stale_ids() { # lock [ids]...
-    args clean_stale_ids "lock" "[ids]" "$@"
-    local lock=$1 id ; shift
+clean_stale_ids() { # [ids]...
+    local id
     for id in "$@" ; do
         debug "cleaning stale id $id"
-        delete_marker "$lock" "$id"
-        q unlock "$lock" "$id"
+        delete_marker "$id"
+        q unlock "$id"
     done
-    clean_markers "$lock"
+    clean_markers
 }
 
-lock() { # lock id # => 10 critical error (stop spinning!)
-    args fast_lock "lock id" "" "$@"
-    [ $# -lt 2 ] && usage "fast_lock too few args ($@)"
-    local lock=$1 id=$2  rtn
+lock() { # id # => 10 critical error (stop spinning!)
+    local id=$1  rtn
+    [ -n "$id" ] || usage "action '$ACTION' needs <ID>"
 
-    [ -f "$lock/owner/$id" ] && error "$lock already locked by $id" 20
+    [ -f "$BASE/owner/$id" ] && error "$BASE already locked by $id" 20
 
-    local markdir=$(create_marker "$lock" "$id")
+    local markdir=$(create_marker "$id")
     [ -n "$markdir" ] || return 2
 
     debug "attempting to lock with $markdir"
     # In rare cases, mv prompts, so us -f to prevent blocking by prompt
-    q mv -f "$markdir" "$lock" ; rtn=$?
+    q mv -f "$markdir" "$BASE" ; rtn=$?
     if [ $rtn = 0 ] ; then
-        info "$lock locked by $id"
+        info "$BASE locked by $id"
     else
         rtn=1
-        info "$lock failed to lock for $id"
+        info "$BASE failed to lock for $id"
     fi
 
-    delete_marker "$lock" "$id"
+    delete_marker "$id"
     return $rtn
 }
 
-unlock() { # lock id
-    args unlock "lock id" "" "$@"
-    local lock=$1 id=$2
+unlock() { # id
+    local id=$1
+    [ -n "$id" ] || usage "action '$ACTION' needs <ID>"
 
-    rm "$lock/owner/$id" # unlock
-    q rmdir "$lock/owner" "$lock"
+    rm "$BASE/owner/$id" # unlock
+    q rmdir "$BASE/owner" "$BASE"
 
-    info "$lock unlocked by $id"
-    clean_markers "$lock" &
+    info "$BASE unlocked by $id"
+    clean_markers &
 }
 
-owner() { # lock > id
-    args owner "lock" "" "$@"
-    ( shopt -s nullglob ; basenames "$1"/owner/* )
-}
+owner() { ( shopt -s nullglob ; basenames "$BASE"/owner/* ) ; } # > id
 
-is_mine() { # lock id
-    args is_mine "lock id" "" "$@"
-    [ "$2" = "$(owner "$1")" ]
+is_mine() { # id
+    [ -n "$1" ] || usage "action '$ACTION' needs <ID>"
+    [ "$1" = "$(owner)" ]
 }
 
 # ----------
@@ -203,4 +184,8 @@ while [ $# -gt 0 ] ; do
     shift
 done
 
-"$@"
+ACTION=$1 ; [ -n "$ACTION" ] || usage "unspecified <ACTION>"
+BASE=$2 ; [ -n "$BASE" ] || usage "action '$ACTION' needs <LOCK_PATH>"
+shift 2
+
+"$ACTION" "$@"
