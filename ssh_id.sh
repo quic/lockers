@@ -3,6 +3,9 @@
 # Copyright (c) 2013, Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
 
+# StrictHostKeyChecking=yes forces rejection on new or changed keys
+# StrictHostKeyChecking=no  forces rejection on changed keys, but auto accepts new keys
+# StrictHostKeyChecking=no UserKnownHostsFile=/dev/null forces accept on new or changed keys
 SSH_LOGIN=(ssh -o StrictHostKeyChecking=yes -o PasswordAuthentication=no)
 
 ERR_HOST_INCOMPATIBLE=10
