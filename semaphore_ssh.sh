@@ -8,9 +8,9 @@ usage() { # error_message
     cat >&2 <<EOF
 
     usage: $prog -u|-h|--help
-           $prog [lopts] acquire <semaphore_path> max [id]
-           $prog [lopts] fast_acquire <semaphore_path> max [id]
-           $prog [lopts] release <semaphore_path> [id]
+           $prog [lopts] acquire <semaphore_path> max id
+           $prog [lopts] fast_acquire <semaphore_path> max id
+           $prog [lopts] release <semaphore_path> id
 
            $prog [lopts] owners <semaphore_path> > uids
            $prog [lopts] owner <semaphore_path> <slot> > uid
