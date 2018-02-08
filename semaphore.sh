@@ -35,8 +35,23 @@ random_slots() { # max > 1..max(in some random order)
   [ $start -gt 1 ] && seq 1 $((start -1))
 }
 
-_acquire_slot() { # [--nocheck] slot [id] # => 10 critical error (stop spinning!)
+_acquire() { # [--nocheck] max [id] # => 10 critical error (stop spinning!)
+    local nocheck=() ; [ "$1" = "--nocheck" ] && { nocheck=("$1"); shift ; }
+    local max=$1 id=($2)  slot locked
+
+    for slot in $(random_slots "$max") ; do
+         acquire_slot "${nocheck[@]}" "$slot" "${id[@]}" ; locked=$?
+         [ $locked -eq 0 ] || [ $locked -gt 9 ] && return $locked
+    done
+    info "$SEMAPHORE failed to be acquired by $id (max $max)"
+    return 1
+}
+
+# ----------
+
+acquire_slot() { # [--nocheck] slot [id] # => 10 critical error (stop spinning!)
     local fast='' ; [ "$1" = "--nocheck" ] && { fast='fast_'; shift ; }
+    args acquire_slot "slot" "id" "$@"
     local slot=$1 id=($2)  locked
 
     "${LOCKER[@]}" "$fast"lock "$SEMAPHORE/$slot" "${id[@]}" ; locked=$?
@@ -45,20 +60,6 @@ _acquire_slot() { # [--nocheck] slot [id] # => 10 critical error (stop spinning!
     fi
     return $locked
 }
-
-_acquire() { # [--nocheck] max [id] # => 10 critical error (stop spinning!)
-    local nocheck=() ; [ "$1" = "--nocheck" ] && { nocheck=("$1"); shift ; }
-    local max=$1 id=($2)  slot locked
-
-    for slot in $(random_slots "$max") ; do
-         _acquire_slot "${nocheck[@]}" "$slot" "${id[@]}" ; locked=$?
-         [ $locked -eq 0 ] || [ $locked -gt 9 ] && return $locked
-    done
-    info "$SEMAPHORE failed to be acquired by $id (max $max)"
-    return 1
-}
-
-# ----------
 
 fast_acquire() { # max [id] # => 10 critical error (stop spinning!)
     args fast_acquire "max" "id" "$@"
@@ -116,6 +117,7 @@ usage() { # error_message
 
     usage: $prog <locker> acquire <semaphore_path> max [id]
            $prog <locker> fast_acquire <semaphore_path> max [id]
+           $prog <locker> acquire_slot <semaphore_path> slot [id]
            $prog <locker> release <semaphore_path> [id]
 
            $prog <locker> owners <semaphore_path> > uids

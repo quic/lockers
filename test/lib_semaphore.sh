@@ -66,4 +66,20 @@ lib_semaphore_test_primary_api() {
     result "Rel again by first($first)" "$OUT"
     out "${SUBJECT[@]}" release "$SEM" "$second"
     result "Rel again by second($second)" "$OUT"
+
+
+    out "${SUBJECT[@]}" acquire_slot "$SEM" 1 "$first"
+    result "Acq slot by first($first)" "$OUT"
+    out "${SUBJECT[@]}" owner "$SEM" 1
+    result_out "Owner of acquire slot should be uid of first($uidf)" "$uidf" "$OUT"
+
+    out "${SUBJECT[@]}" acquire_slot "$SEM" 2 "$first"
+    result "Acq slot2 by first($first)" "$OUT"
+    out "${SUBJECT[@]}" owner "$SEM" 2
+    result_out "Owner of acquire2 slot should be uid of first($uidf)" "$uidf" "$OUT"
+
+    out "${SUBJECT[@]}" release "$SEM" "$first"
+    result "Rel slot by first($first)" "$OUT"
+    out "${SUBJECT[@]}" release "$SEM" "$first"
+    result "Rel slot2 by first($first)" "$OUT"
 }

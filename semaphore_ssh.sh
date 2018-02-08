@@ -10,6 +10,7 @@ usage() { # error_message
     usage: $prog -u|-h|--help
            $prog [lopts] acquire <semaphore_path> max id
            $prog [lopts] fast_acquire <semaphore_path> max id
+           $prog [lopts] acquire_slot <semaphore_path> slot id
            $prog [lopts] release <semaphore_path> id
 
            $prog [lopts] owners <semaphore_path> > uids
