@@ -37,77 +37,70 @@ random_slots() { # max > 1..max(in some random order)
 
 # ----------
 
-fast_acquire() { # semaphore max [id] # => 10 critical error (stop spinning!)
-    args fast_acquire "semaphore max" "id" "$@"
-    local sem=$1 max=$2 id=($3)  slot locked
+fast_acquire() { # max [id] # => 10 critical error (stop spinning!)
+    args fast_acquire "max" "id" "$@"
+    local max=$1 id=($2)  slot locked
 
     for slot in $(random_slots $max) ; do
-         "${LOCKER[@]}" fast_lock "$sem/$slot" "${id[@]}" ; locked=$?
+         "${LOCKER[@]}" fast_lock "$SEMAPHORE/$slot" "${id[@]}" ; locked=$?
          if [ $locked -eq 0 ] ; then
-             info "$sem fast_acquired by $id (max $max)"
+             info "$SEMAPHORE fast_acquired by $id (max $max)"
              return 0
          fi
          [ $locked -gt 9 ] && return $locked
     done
-    info "$sem failed to be fast_acquired by $id (max $max)"
+    info "$SEMAPHORE failed to be fast_acquired by $id (max $max)"
     return 1
 }
 
-acquire() { # semaphore max [id] # => 10 critical error (stop spinning!)
-    args acquire "semaphore max" "id" "$@"
-    local sem=$1 max=$2 id=($3)  slot locked
+acquire() { # max [id] # => 10 critical error (stop spinning!)
+    args acquire "max" "id" "$@"
+    local max=$1 id=($2)  slot locked
 
     fast_acquire "$@" ; locked=$?
     [ $locked -eq 0  -o  $locked -gt 9 ] && return $locked
     for slot in $(random_slots $max) ; do
-         "${LOCKER[@]}"  lock "$sem/$slot" "${id[@]}" ; locked=$?
+         "${LOCKER[@]}"  lock "$SEMAPHORE/$slot" "${id[@]}" ; locked=$?
          if [ $locked -eq 0 ] ; then
-             info "$sem acquired by $id (max $max)"
+             info "$SEMAPHORE acquired by $id (max $max)"
              return 0
          fi
          [ $locked -gt 9 ] && return $locked
     done
-    info "$sem failed to be acquired by $id (max $max)"
+    info "$SEMAPHORE failed to be acquired by $id (max $max)"
     return 2
 }
 
-release() { # semaphore [id]
-    args release "semaphore" "id" "$@"
-    local sem=$1 id=($2)  lock
-
-    for lock in "$sem"/* ; do
-         [ "$lock" = "$sem"/'*' ] && continue
+release() { # [id]
+    local id=($1)  lock
+    for lock in "$SEMAPHORE"/* ; do
+         [ "$lock" = "$SEMAPHORE"/'*' ] && continue
          "${LOCKER[@]}" is_mine "$lock" "${id[@]}" || continue
          "${LOCKER[@]}" unlock "$lock" "${id[@]}"
-         rmdir "$sem" 2> /dev/null
-         info "$sem released by $id"
+         rmdir "$SEMAPHORE" 2> /dev/null
+         info "$SEMAPHORE released by $id"
          return 0
     done
-    error "$sem not held by $id" 19
+    error "$SEMAPHORE not held by $id" 19
 }
 
-owners() { # semaphore > uids...
-    args owners "semaphore" "" "$@"
-    local sem=$1 lock
-
-    for lock in "$sem"/* ; do
-         [ "$lock" = "$sem"/'*' ] && continue
+owners() { # > uids...
+    local lock
+    for lock in "$SEMAPHORE"/* ; do
+         [ "$lock" = "$SEMAPHORE"/'*' ] && continue
          "${LOCKER[@]}" owner "$lock"
     done
 }
 
-owner() { # semaphore slot > uid
-    args owner "semaphore slot" "" "$@"
-    local sem=$1 slot=$2
-    "${LOCKER[@]}" owner "$sem/$slot"
+owner() { # slot > uid
+    args owner "slot" "" "$@"
+    "${LOCKER[@]}" owner "$SEMAPHORE/$1"
 }
 
-slot() { # semaphore [id] > slot
-    args slot "semaphore" "id" "$@"
-    local sem=$1 id=($2) lock
-
-    for lock in "$sem"/* ; do
-         [ "$lock" = "$sem"/'*' ] && continue
+slot() { # [id] > slot
+    local id=($1) lock
+    for lock in "$SEMAPHORE"/* ; do
+         [ "$lock" = "$SEMAPHORE"/'*' ] && continue
          "${LOCKER[@]}" is_mine "$lock" "${id[@]}" || continue
          echo "$(basename "$lock")"
          return
@@ -170,11 +163,22 @@ while [ $# -gt 0 ] ; do
 
         -a|--locker-arg) LOCKER=("${LOCKER[@]}" "$2") ; shift ;;
 
-        *)  [ -n "$LOCKER" ] && break
-            LOCKER=("$1") ;;
+        *)  if [ -z "$LOCKER" ] ; then
+                LOCKER=("$1")
+            elif [ -z "$ACTION" ] ; then
+                ACTION=$1
+            elif [ -z "$SEMAPHORE" ] ; then
+                SEMAPHORE=$1
+            else
+                break
+            fi
+        ;;
     esac
     shift
 done
 [ "$DEBUG" = "DEBUG" ] && LOCKER=("${LOCKER[@]}" --debug)
 
-"$@"
+[ -z "$ACTION" ] && usage "ACTION required"
+[ -z "$SEMAPHORE" ] && usage "SEMAPHORE required for $ACTION"
+
+"$ACTION" "$@"
