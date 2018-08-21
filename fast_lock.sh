@@ -38,8 +38,6 @@
 #  <lock_path>/                         # top level dir, in place of lock file
 #  <lock_path>/build/                   # holds proposed locks
 #  <lock_path>/build/<id>/owner/<id>    # proposed future lock
-#  <lock_path>/markers/                 # holds potential future locks (deprecated)
-#  <lock_path>/markers/<id>/owner/<id>  # potential future lock
 #  <lock_path>/owner/<id>               # represents the locked state
 #
 
@@ -51,22 +49,6 @@ error() { echo "$(d) ERROR - $1" >&2 ; exit $2 ; }
 
 # paths... > basenames... (one line each)
 basenames() { local p ; for p in "$@" ; do basename "$p" ; done ; }
-
-# ---------- markers are potential locks, not yet owners (deprecated) ----------
-
-delete_markdirs() { # id
-    local id=$1
-    q rmdir "$MARKERS/$id/owner" "$MARKERS/$id" "$MARKERS"
-}
-
-delete_marker() { # id
-    local id=$1
-    q rm "$MARKERS/$id/owner/$id"
-    delete_markdirs "$id"
-}
-
-# > markerids_in_use
-marker_ids() { ( shopt -s nullglob ; basenames "$MARKERS"/* ) }
 
 # ---------- proposals ----------
 
@@ -92,13 +74,12 @@ build_proposal() { # id > [proposal_dir] (if success)
 
 # ---------- API ------------
 
-ids_in_use() { (owner ; marker_ids ; proposal_ids) | sort --unique ; } # > ids...
+ids_in_use() { (owner ; proposal_ids) | sort --unique ; } # > ids...
 
 clean_stale_ids() { # [ids]...
     local id
     for id in "$@" ; do
         debug "cleaning stale id $id"
-        delete_marker "$id"
         clean_proposal "$id"
         q unlock "$id"
     done
@@ -187,7 +168,6 @@ BASE=$2 ; [ -n "$BASE" ] || usage "action '$ACTION' needs <LOCK_PATH>"
 shift 2
 
 BUILD=$BASE/build
-MARKERS=$BASE/markers
 OWNER=$BASE/owner
 
 "$ACTION" "$@"

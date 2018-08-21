@@ -32,7 +32,7 @@ result_out "Owner should be first" "first" "$OUT"
 out "$LOCKER" ids_in_use "$LOCK" ;
 result_out "first is ids_in_use" "first" "$OUT"
 
-mkdir -p "$LOCK/markers/second/owner"
+mkdir -p "$LOCK/build/second/owner"
 out "$LOCKER" ids_in_use "$LOCK" ; OUT=$(echo $OUT)
 result_out "second now in ids_in_use" "first second" "$OUT"
 
