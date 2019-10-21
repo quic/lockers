@@ -58,8 +58,8 @@ ssh_uid() { # fqdn_host pid [marker] > uid[marker] (if running)
             [ "$host" != "$fqdn" ] && return $ERR_FQDN_MISSMATCH
             [ -z "$boot" ] && return $ERR_HOST_INCOMPATIBLE
 
-            [ -z "$starttime" ] && return 0
             echo "$fqdn:$pid:$starttime:$boot$marker"
+            return 0
         }
 }
 
@@ -103,12 +103,11 @@ is_stale() {  # uid
         return $rtn
     fi
 
-    [ -z "$ssh_uid" ] && return 0 # no starttime
     if ! echo "$ssh_uid" | grep -q "$MARKER"'$' ; then
         notify "$uid" "Check Incomplete"
         return $ERR_INCOMPLETE
     fi
-    [ "$ssh_uid" != "$uid$MARKER" ] # different boottime
+    [ "$ssh_uid" != "$uid$MARKER" ] # Likely no starttime or different boottime
 }
 
 uid() { # pid > uid
