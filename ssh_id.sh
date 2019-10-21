@@ -11,8 +11,11 @@ SSH_LOGIN=(ssh -o StrictHostKeyChecking=yes -o PasswordAuthentication=no)
 ERR_HOST_INCOMPATIBLE=10
 ERR_FQDN_MISSMATCH=11
 ERR_UID_FETCH=12
+ERR_INCOMPLETE=13
 ERR_MALFORMED_UID=20
 ERR_MISSING_ARG=127
+
+MARKER=COMPLETED
 
 qerr() { "$@" 2>/dev/null ; } # execute a cmd and quiet the stderr
 
@@ -41,8 +44,8 @@ is_host_compatible() { # host
     [ "$fqdn" = "$(fqdn "$fqdn")" ] || return $ERR_HOST_INCOMPATIBLE
 }
 
-ssh_uid() { # fqdn_host pid > uid (if running)
-    local host="$1" pid=$2
+ssh_uid() { # fqdn_host pid [marker] > uid[marker] (if running)
+    local host="$1" pid=$2 marker=$3
     ( [ -n "$host" ] && [ -n "$pid" ] ) || return $ERR_MISSING_ARG
 
     qerr "${SSH_LOGIN[@]}" "$host"\
@@ -56,7 +59,7 @@ ssh_uid() { # fqdn_host pid > uid (if running)
             [ -z "$boot" ] && return $ERR_HOST_INCOMPATIBLE
 
             [ -z "$starttime" ] && return 0
-            echo "$fqdn:$pid:$starttime:$boot"
+            echo "$fqdn:$pid:$starttime:$boot$marker"
         }
 }
 
@@ -88,7 +91,7 @@ is_stale() {  # uid
     validate_uid "$uid" || return
 
     local ssh_uid rtn
-    ssh_uid=$(ssh_uid "$host" "$pid") ; rtn=$?
+    ssh_uid=$(ssh_uid "$host" "$pid" "$MARKER") ; rtn=$?
     if [ $rtn -gt 1 ] ; then
         if [ $rtn = $ERR_HOST_INCOMPATIBLE ] ; then
             notify "$uid" "Host Incompatible"
@@ -101,7 +104,11 @@ is_stale() {  # uid
     fi
 
     [ -z "$ssh_uid" ] && return 0 # no starttime
-    [ "$ssh_uid" != "$uid" ] # different boottime
+    if ! echo "$ssh_uid" | grep -q "$MARKER"'$' ; then
+        notify "$uid" "Check Incomplete"
+        return $ERR_INCOMPLETE
+    fi
+    [ "$ssh_uid" != "$uid$MARKER" ] # different boottime
 }
 
 uid() { # pid > uid
@@ -124,11 +131,11 @@ usage() { # error_message
     usage: $prog [nopts] is_stale <uid>
            $prog uid <pid> > <uid>  (must be run on host)
 
-           $prog [nopts] pid <uid> > pid
-           $prog [nopts] host <uid> > host
+           $prog [nopts] pid <uid> > <pid>
+           $prog [nopts] host <uid> > <host>
 
-           $prog is_valid_uid uid
-           $prog is_host_compatible host
+           $prog is_valid_uid <uid>
+           $prog is_host_compatible <host>
 
     A remote host process id/uid manipulator and runchecker using ssh.
     A uid is used to identify currently running processes and to compare
