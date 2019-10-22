@@ -22,7 +22,7 @@ qerr() { "$@" 2>/dev/null ; } # execute a cmd and quiet the stderr
 d() { [ "$DEBUG" = "DEBUG" ] && { echo "$(date) " ; } } # > date(debug) | nothing
 error() { echo "$(d) ERROR - $1" >&2 ; exit $2 ; }
 
-fqdn() { "${SSH_LOGIN[@]}" "$host" hostname --fqdn ; } # host
+fqdn() { "${SSH_LOGIN[@]}" "$1" hostname --fqdn ; } # host > fqdn
 
 notifier() { echo "$3" >&2 ; } # checking_host id message
 
