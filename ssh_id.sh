@@ -50,13 +50,15 @@ ssh_uid() { # fqdn_host pid [marker] > uid[marker] (if running)
 
     qerr "${SSH_LOGIN[@]}" "$host"\
         hostname --fqdn ';'\
-        awk "'\$1 == \"btime\" {print \$2}'" /proc/stat ';'\
-        awk "'{print \$22}'" /proc/$pid/stat |\
+        awk "'\$1 == \"btime\" {printf(\"%s $marker\n\", \$2)}'" /proc/stat ';'\
+        awk "'BEGIN {getline < \"/proc/$pid/stat\"; printf(\"%s $marker\n\", \$22)}'" < /dev/null |\
         {
-            read fqdn ; read boot ; read starttime
+            read fqdn ; read boot checkboot ; read starttime checkstart
             [ -z "$fqdn" ] && return $ERR_HOST_INCOMPATIBLE
             [ "$host" != "$fqdn" ] && return $ERR_FQDN_MISSMATCH
             [ -z "$boot" ] && return $ERR_HOST_INCOMPATIBLE
+            [ "$checkboot" = "$marker" ] || return $ERR_INCOMPLETE
+            [ "$checkstart" = "$marker" -o "$starttime" = "$marker" ] || return $ERR_INCOMPLETE
 
             echo "$fqdn:$pid:$starttime:$boot$marker"
             return 0
