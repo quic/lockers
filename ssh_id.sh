@@ -107,7 +107,18 @@ is_stale() {  # uid
         notify "$uid" "Check Incomplete"
         return $ERR_INCOMPLETE
     fi
-    [ "$ssh_uid" != "$uid$MARKER" ] # Likely no starttime or different boottime
+
+    [ "$ssh_uid" == "$uid$MARKER" ] && return 1
+
+    # Linux bootimes can vary by up to one second:
+    #   https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=119971
+    uid=$host:$pid:$starttime:$(($boottime +1))
+    [ "$ssh_uid" == "$uid$MARKER" ] && return 1
+
+    uid=$host:$pid:$starttime:$(($boottime -1))
+    [ "$ssh_uid" == "$uid$MARKER" ] && return 1
+
+    return 0 # Likely no starttime or different boottime
 }
 
 uid() { # pid > uid
