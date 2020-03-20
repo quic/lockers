@@ -8,8 +8,8 @@
 # StrictHostKeyChecking=no UserKnownHostsFile=/dev/null forces accept on new or changed keys
 SSH_LOGIN=(ssh -o StrictHostKeyChecking=yes -o PasswordAuthentication=no)
 
-ERR_HOST_INCOMPATIBLE=10
-ERR_FQDN_MISSMATCH=11
+ERR_SSHDEST_INCOMPATIBLE=10
+ERR_HOSTID_MISSMATCH=11
 ERR_UID_FETCH=12
 ERR_INCOMPLETE=13
 ERR_MALFORMED_UID=20
@@ -22,59 +22,60 @@ qerr() { "$@" 2>/dev/null ; } # execute a cmd and quiet the stderr
 d() { [ "$DEBUG" = "DEBUG" ] && { echo "$(date) " ; } } # > date(debug) | nothing
 error() { echo "$(d) ERROR - $1" >&2 ; exit $2 ; }
 
-fqdn() { "${SSH_LOGIN[@]}" "$1" hostname --fqdn ; } # host > fqdn
+dest2hostid() { "${SSH_LOGIN[@]}" "$1" hostname --fqdn ; } # dest > hostid
 
 notifier() { echo "$3" >&2 ; } # checking_host id message
 
 notify() { # id reason
-  local host=$(hostname --fqdn)
-  "${NOTIFIER[@]}" "$host" "$1" "WARNING: host($host) is unable to identify live/staleness for $1: $2"
+  local hostid=$(hostname --fqdn)
+  "${NOTIFIER[@]}" "$hostid" "$1" "WARNING: host($hostid) is unable to identify live/staleness for $1: $2"
 }
 
-_host() { echo "$1" | awk -F: '{print $1}' ; } # uid > host
+_hostid() { echo "$1" | awk -F: '{print $1}' ; } # uid > hostid
 _pid() { echo "$1" | awk -F: '{print $2}' ; } # uid > pid
 _starttime() { echo "$1" | awk -F: '{print $3}' ; } # uid > starttime
 _boottime() { echo "$1" | awk -F: '{print $4}' ; } # uid > boottime
 
-is_host_compatible() { # host
-    local host=$1
-    local fqdn=$(fqdn "$host")
-    [ -z "$fqdn" ] && return $ERR_HOST_INCOMPATIBLE
-    [ "$host" = "$fqdn" ] && return
-    [ "$fqdn" = "$(fqdn "$fqdn")" ] || return $ERR_HOST_INCOMPATIBLE
+is_host_compatible() { # sshdest|hostid
+    local dest=$1
+    local dest_hostid=$(dest2hostid "$dest")
+    [ -z "$dest_hostid" ] && return $ERR_SSHDEST_INCOMPATIBLE
+    [ "$dest" = "$dest_hostid" ] && return
+    [ "$dest_hostid" = "$(dest2hostid "$dest_hostid")" ] || return $ERR_HOSTID_MISSMATCH
 }
 
-ssh_uid() { # fqdn_host pid [marker] > uid[marker] (if running)
-    local host="$1" pid=$2 marker=$3
-    ( [ -n "$host" ] && [ -n "$pid" ] ) || return $ERR_MISSING_ARG
+ssh_uid() { # hostid pid [marker] > uid[marker] (if running)
+    local hostid="$1" pid=$2 marker=$3
+    ( [ -n "$hostid" ] && [ -n "$pid" ] ) || return $ERR_MISSING_ARG
+    local sshdest=$hostid
 
-    qerr "${SSH_LOGIN[@]}" "$host"\
+    qerr "${SSH_LOGIN[@]}" "$sshdest"\
         hostname --fqdn ';'\
         awk "'\$1 == \"btime\" {printf(\"%s $marker\n\", \$2)}'" /proc/stat ';'\
         awk "'BEGIN {getline < \"/proc/$pid/stat\"; printf(\"%s $marker\n\", \$22)}'" < /dev/null |\
         {
-            read fqdn ; read boot checkboot ; read starttime checkstart
-            [ -z "$fqdn" ] && return $ERR_HOST_INCOMPATIBLE
-            [ "$host" != "$fqdn" ] && return $ERR_FQDN_MISSMATCH
-            [ -z "$boot" ] && return $ERR_HOST_INCOMPATIBLE
+            read dest_hostid ; read boot checkboot ; read starttime checkstart
+            [ -z "$dest_hostid" ] && return $ERR_SSHDEST_INCOMPATIBLE
+            [ "$hostid" != "$dest_hostid" ] && return $ERR_HOSTID_MISSMATCH
+            [ -z "$boot" ] && return $ERR_SSHDEST_INCOMPATIBLE
             [ "$checkboot" = "$marker" ] || return $ERR_INCOMPLETE
             [ "$checkstart" = "$marker" -o "$starttime" = "$marker" ] || return $ERR_INCOMPLETE
 
-            echo "$fqdn:$pid:$starttime:$boot$marker"
+            echo "$dest_hostid:$pid:$starttime:$boot$marker"
             return 0
         }
 }
 
-is_valid_uid() {  # uid # (SETS host pid starttime boottime)
+is_valid_uid() {  # uid # (SETS hostid pid starttime boottime)
     local uid=$1
-    host=$(_host "$uid")
+    hostid=$(_hostid "$uid")
     pid=$(_pid "$uid")
     starttime=$(_starttime "$uid")
     boottime=$(_boottime "$uid")
-    [ -n "$host" ] && [ -n "$pid" ] && [ -n "$starttime" ] && [ -n "$boottime" ]
+    [ -n "$hostid" ] && [ -n "$pid" ] && [ -n "$starttime" ] && [ -n "$boottime" ]
 }
 
-validate_uid() {  # uid # (SETS host pid starttime boottime)
+validate_uid() {  # uid # (SETS hostid pid starttime boottime)
     local uid=$1
     if ! is_valid_uid "$uid" ; then
         notify "$uid" "Malformed UID"
@@ -82,23 +83,24 @@ validate_uid() {  # uid # (SETS host pid starttime boottime)
     fi
 }
 
-host() { validate_uid "$1" && echo "$host" ; } # uid > host
+hostid() { validate_uid "$1" && echo "$hostid" ; } # uid > hostid
+sshdest() { hostid "$1" ; } # uid > sshdest
 pid() {  validate_uid "$1" && echo "$pid" ; } # uid > pid
 
 is_stale() {  # uid
     local uid=$1
     [ -z "$uid" ] && return $ERR_MISSING_ARG
 
-    local host pid
+    local hostid pid
     validate_uid "$uid" || return
 
     local ssh_uid rtn
-    ssh_uid=$(ssh_uid "$host" "$pid" "$MARKER") ; rtn=$?
+    ssh_uid=$(ssh_uid "$hostid" "$pid" "$MARKER") ; rtn=$?
     if [ $rtn -gt 1 ] ; then
-        if [ $rtn = $ERR_HOST_INCOMPATIBLE ] ; then
-            notify "$uid" "Host Incompatible"
-        elif [ $rtn = $ERR_FQDN_MISSMATCH ] ; then
-            notify "$uid" "FQDN Missmatch"
+        if [ $rtn = $ERR_SSHDEST_INCOMPATIBLE ] ; then
+            notify "$uid" "SSHDEST Incompatible"
+        elif [ $rtn = $ERR_HOSTID_MISSMATCH ] ; then
+            notify "$uid" "HOSTID Missmatch"
         else
             notify "$uid" "Unknown"
         fi
@@ -114,10 +116,10 @@ is_stale() {  # uid
 
     # Linux bootimes can vary by up to one second:
     #   https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=119971
-    uid=$host:$pid:$starttime:$(($boottime +1))
+    uid=$hostid:$pid:$starttime:$(($boottime +1))
     [ "$ssh_uid" == "$uid$MARKER" ] && return 1
 
-    uid=$host:$pid:$starttime:$(($boottime -1))
+    uid=$hostid:$pid:$starttime:$(($boottime -1))
     [ "$ssh_uid" == "$uid$MARKER" ] && return 1
 
     return 0 # Likely no starttime or different boottime
@@ -130,10 +132,10 @@ uid() { # pid > uid
     [ -z "$starttime" ] && return 1 # no longer running
     local boot=$(qerr awk '$1 == "btime" {print $2}' /proc/stat)
     [ -z "$boot" ] && error "Cannot determine local host boottime" $ERR_UID_FETCH
-    local host=$(hostname --fqdn)
-    [ -z "$host" ] && error "Cannot determine local hostname" $ERR_UID_FETCH
+    local hostid=$(hostname --fqdn)
+    [ -z "$hostid" ] && error "Cannot determine local hostid" $ERR_UID_FETCH
 
-    echo "$host:$pid:$starttime:$boot"
+    echo "$hostid:$pid:$starttime:$boot"
 }
 
 usage() { # error_message
@@ -144,10 +146,11 @@ usage() { # error_message
            $prog uid <pid> > <uid>  (must be run on host)
 
            $prog [nopts] pid <uid> > <pid>
-           $prog [nopts] host <uid> > <host>
+           $prog [nopts] hostid <uid> > <hostid>
+           $prog [nopts] sshdest <uid> > <sshdest>
 
            $prog is_valid_uid <uid>
-           $prog is_host_compatible <host>
+           $prog is_host_compatible <sshdest|hostid>
 
     A remote host process id/uid manipulator and runchecker using ssh.
     A uid is used to identify currently running processes and to compare

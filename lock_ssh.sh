@@ -10,8 +10,8 @@ error() { echo "$(d) ERROR - $1" >&2 ; exit $2 ; }
 
 uid() { "${ID_HELPER[@]}" uid "$1" ; } # pid|uid > uid
 pid() { "${ID_HELPER[@]}" pid "$1" ; } # pid|uid > pid
-sshdest() { "${ID_HELPER[@]}" host "$1" ; } # uid > sshdest
-hostid() { "${ID_HELPER[@]}" host "$1" ; } # uid > hostid
+sshdest() { "${ID_HELPER[@]}" sshdest "$1" ; } # uid > sshdest
+hostid() { "${ID_HELPER[@]}" hostid "$1" ; } # uid > hostid
 compatible() { "${ID_HELPER[@]}" is_host_compatible "$1" ; } # ssh_host
 
 checker_args() { # args...
