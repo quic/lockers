@@ -12,8 +12,7 @@ source "$MYDIR"/../lib/test/results.sh
 out() { OUT=$("$@") ; }
 outerr() { OUT=$("$@" 2>&1) ; }
 
-
-LOCKER=$MYDIR/../$MYNAME
+[ -z "$LOCKER" ] && LOCKER=$MYDIR/../$MYNAME
 FAST_LOCK=$MYDIR/../lib/fast_lock.sh
 OUTDIR=$MYDIR/out/$(basename -- "$MYNAME" .sh)
 LOCK="--help mylock"
@@ -26,7 +25,8 @@ cd -- "$OUTDIR" || exit
 rm -rf -- "$LOCK" # cleanup any previous runs
 
 MYSSHDEST=$(hostname --fqdn)
-MYHOSTID=$(hostname --fqdn)
+[ -z "$MYHOSTID" ] && MYHOSTID=$(hostname --fqdn)
+
 if ! "$LOCKER" is_host_compatible "$MYSSHDEST" ; then
     echo "WARNING UNTESTED: host incompatible"
     exit 0

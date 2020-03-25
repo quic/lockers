@@ -32,6 +32,11 @@ Example of staleness policy locker helpers:
                 after a grace period from the lock acquisition and the
                 last check.
 
+## Clusters
+
+hostpid_lock.sh is an ssh_id.sh based helper and is useful for building
+cluster lockers that know how to identify a host and access it to verify
+if a process is no longer running.
 
 ## ToDo
 
