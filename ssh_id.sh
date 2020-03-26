@@ -3,10 +3,17 @@
 # Copyright (c) 2013, Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
 
-# StrictHostKeyChecking=yes forces rejection on new or changed keys
+# Ignoring host keys here allows an attacker to potentially spoof the staleness
+# of an id. Ignoring host keys can drastically reduce the maintenance burden
+# otherwise required to set each host in a cluster up to know about all the other
+# hosts in the cluster. Known host tracking is likely intractable in dynamic host
+# environments such as in the cloud with kubernetes.
+# StrictHostKeyChecking=yes forces rejection on new o changed keys
 # StrictHostKeyChecking=no  forces rejection on changed keys, but auto accepts new keys
 # StrictHostKeyChecking=no UserKnownHostsFile=/dev/null forces accept on new or changed keys
-SSH_LOGIN=(ssh -o StrictHostKeyChecking=yes -o PasswordAuthentication=no)
+SSH_LOGIN=(ssh -o PasswordAuthentication=no)
+SSH_LOGIN+=(-o StrictHostKeyChecking=no)
+SSH_LOGIN+=(-o UserKnownHostsFile=/dev/null)
 
 ERR_SSHDEST_INCOMPATIBLE=10
 ERR_HOSTID_MISSMATCH=11
