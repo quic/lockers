@@ -6,15 +6,15 @@
 MYPROG=$(readlink -f "$0")
 MYDIR=$(dirname "$MYPROG")
 MYNAME=$(basename "$MYPROG")
-source "$MYDIR"/lib.sh
-source "$MYDIR"/results.sh
+source "$MYDIR"/../lib/test/lib.sh
+source "$MYDIR"/../lib/test/results.sh
 
 out() { OUT=$("$@") ; }
 outerr() { OUT=$("$@" 2>&1) ; }
 
 
 LOCKER=$MYDIR/../$MYNAME
-FAST_LOCK=$MYDIR/../fast_lock.sh
+FAST_LOCK=$MYDIR/../lib/fast_lock.sh
 OUTDIR=$MYDIR/out
 LOCK=$OUTDIR/$MYNAME
 

@@ -60,7 +60,7 @@ shift 2
 
 [ "$action" = "fast_lock" ] && action=lock_nocheck
 
-locker=("$mydir"/check_lock.sh $DEBUG)
+locker=("$mydir"/lib/check_lock.sh $DEBUG)
 case "$action" in
     owner|owner_pid|lock|unlock)
         locker=("${locker[@]}" "${STALE_CHECKER[@]}")

@@ -6,8 +6,8 @@
 MYPROG=$(readlink -f "$0")
 MYDIR=$(dirname "$MYPROG")
 MYNAME=$(basename "$MYPROG")
-source "$MYDIR"/lib.sh
-source "$MYDIR"/results.sh
+source "$MYDIR"/../lib/test/lib.sh
+source "$MYDIR"/../lib/test/results.sh
 
 ID=$MYDIR/../$MYNAME
 

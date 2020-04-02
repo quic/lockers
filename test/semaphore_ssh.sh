@@ -6,8 +6,8 @@
 MYPROG=$(readlink -f "$0")
 MYDIR=$(dirname "$MYPROG")
 MYNAME=$(basename "$MYPROG")
-source "$MYDIR"/lib.sh
-source "$MYDIR"/results.sh
+source "$MYDIR"/../lib/test/lib.sh
+source "$MYDIR"/../lib/test/results.sh
 source "$MYDIR"/lib_semaphore.sh
 
 SUBJECT=$MYDIR/../$MYNAME
@@ -16,7 +16,7 @@ OUTDIR=$MYDIR/out
 SEM=$OUTDIR/$MYNAME
 MYHOST=$(hostname --fqdn)
 
-FAST_LOCK=$MYDIR/../fast_lock.sh
+FAST_LOCK=$MYDIR/../lib/fast_lock.sh
 NLOCK=$SEM/1
 NFILE=$SEM.notified
 [ "$1" = "--notify" ] && { shift ; echo "$@" > "$NFILE" ; exit ; }

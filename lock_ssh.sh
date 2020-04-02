@@ -99,7 +99,7 @@ if [ -n "$CHECK_FAIL" ] ; then
     checker_args "${CHECK_FAIL[@]}" --on-check-fail "$lock"
 fi
 checker_args is_stale
-LOCKER=("$mydir/grace_lock.sh" "${CHECKER[@]}" "${LOCKER_ARGS[@]}")
+LOCKER=("$mydir/lib/grace_lock.sh" "${CHECKER[@]}" "${LOCKER_ARGS[@]}")
 
 case "$action" in
     owner) "${LOCKER[@]}" "$action" "$lock" ;;

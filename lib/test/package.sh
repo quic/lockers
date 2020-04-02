@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Copyright (c) 2013, Qualcomm Innovation Center, Inc. All rights reserved.
+# Copyright (c) 2020, Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
 
 # Top level test entry for the lockers
@@ -15,12 +15,8 @@ test_file() { # test_file
     "$MYDIR/$1" || RESULT=$?
 }
 
-"$MYDIR"/../lib/test/package.sh
-test_file local_id.sh
-test_file lock_local.sh
-test_file semaphore.sh
-test_file ssh_id.sh
-test_file lock_ssh.sh
-test_file semaphore_ssh.sh
+test_file fast_lock.sh
+test_file check_lock.sh
+test_file grace_lock.sh
 
 exit $RESULT
