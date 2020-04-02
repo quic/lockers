@@ -24,8 +24,9 @@ NFILE=$LOCK.notified
 mkdir -p "$OUTDIR"
 rm -rf "$LOCK" # cleanup any previous runs
 
-myhost=$(hostname --fqdn)
-if ! "$LOCKER" is_host_compatible "$myhost" ; then
+MYSSHDEST=$(hostname --fqdn)
+MYHOSTID=$(hostname --fqdn)
+if ! "$LOCKER" is_host_compatible "$MYSSHDEST" ; then
     echo "WARNING UNTESTED: host incompatible"
     exit 0
 fi
@@ -43,8 +44,8 @@ result_out "owner" "$uid" "$OUT"
 out "$LOCKER" owner_pid "$LOCK"
 result "owner_pid" "$first" "$OUT"
 
-out "$LOCKER" owner_host "$LOCK"
-result_out "owner_host" "$myhost" "$OUT"
+out "$LOCKER" owner_hostid "$LOCK"
+result_out "owner_hostid" "$MYHOSTID" "$OUT"
 
 "$LOCKER" is_mine "$LOCK" "$first"
 result "is_mine first" "$OUT"
@@ -91,7 +92,7 @@ BAD_ID=BADID.$$
 CHECKER_ARGS=(--on-check-fail "$MYPROG" --on-check-fail --notify)
 "$LOCKER" "${CHECKER_ARGS[@]}" lock_check "$LOCK" $$ 1
 OUT=$(< "$NFILE")
-result_out "notify on stale" "$LOCK $myhost $BAD_ID WARNING: host($myhost) \
+result_out "notify on stale" "$LOCK $MYSSHDEST $BAD_ID WARNING: host($MYSSHDEST) \
 is unable to identify live/staleness for $BAD_ID: Malformed UID" "$OUT"
 
 

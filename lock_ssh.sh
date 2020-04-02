@@ -10,8 +10,9 @@ error() { echo "$(d) ERROR - $1" >&2 ; exit $2 ; }
 
 uid() { "${ID_HELPER[@]}" uid "$1" ; } # pid|uid > uid
 pid() { "${ID_HELPER[@]}" pid "$1" ; } # pid|uid > pid
-host() { "${ID_HELPER[@]}" host "$1" ; } # uid > host
-compatible() { "${ID_HELPER[@]}" is_host_compatible "$1" ; } # host
+sshdest() { "${ID_HELPER[@]}" host "$1" ; } # uid > sshdest
+hostid() { "${ID_HELPER[@]}" host "$1" ; } # uid > hostid
+compatible() { "${ID_HELPER[@]}" is_host_compatible "$1" ; } # ssh_host
 
 checker_args() { # args...
     while [ $# -gt 0 ] ; do
@@ -31,10 +32,10 @@ usage() { # error_message
            $prog [opts] fast_lock <lock_path> <pid>
            $prog [opts] owner <lock_path> > uid
            $prog [opts] owner_pid <lock_path> > pid
-           $prog [opts] owner_host <lock_path> > host
+           $prog [opts] owner_hostid <lock_path> > hostid
            $prog [opts] is_mine <lock_path> <pid|uid>
 
-           $prog is_host_compatible host
+           $prog is_host_compatible <sshdest|hostid>
 
     A lock manager designed for cluster use via a shared filesystem with
     ssh run checks.
@@ -91,7 +92,7 @@ while [ $# -gt 0 ] ; do
 done
 
 action=$1
-lock=$2 ; host=$2
+lock=$2 ; dest=$2
 shift 2
 
 if [ -n "$CHECK_FAIL" ] ; then
@@ -104,7 +105,7 @@ case "$action" in
     owner) "${LOCKER[@]}" "$action" "$lock" ;;
 
     owner_pid) pid "$("${LOCKER[@]}" "owner" "$lock")" ;;
-    owner_host) host "$("${LOCKER[@]}" "owner" "$lock")" ;;
+    owner_hostid) hostid "$("${LOCKER[@]}" "owner" "$lock")" ;;
 
     lock|unlock|lock_check|fast_lock|is_mine)
         id=$1 ; shift
@@ -122,7 +123,7 @@ case "$action" in
         esac
     ;;
 
-    is_host_compatible) compatible "$host" ;;
+    is_host_compatible) compatible "$dest" ;;
 
     *) usage "unknown action ($action)" ;;
 esac
