@@ -21,63 +21,63 @@ rm -rf "$LOCK" # cleanup any previous runs
 first=1
 second=2
 
-out "$LOCKER" false lock "$LOCK" $first
-result "Lock by first($first)" "$OUT"
+out "$LOCKER" false lock "$LOCK" "$first"
+result "lock by first($first)" "$OUT"
 
-out "$LOCKER" owner "$LOCK" ; [ "$OUT" =  "$first" ]
-result "Owner should be first($first)" "$OUT"
+out "$LOCKER" owner "$LOCK"
+result_out "owner" "$first" "$OUT"
 
-"$LOCKER" is_mine "$LOCK" $first
-result "first($first) is_mine" "$OUT"
+"$LOCKER" is_mine "$LOCK" "$first"
+result "is_mine first" "$OUT"
 
-! out "$LOCKER" is_mine "$LOCK" $second
-result "second($second) ! is_mine" "$OUT"
+! out "$LOCKER" is_mine "$LOCK" "$second"
+result "NOT is_mine second($second)" "$OUT"
 
-! outerr "$LOCKER" false lock "$LOCK" $first
-result "Cannot relock by first($first)" "$OUT"
+! outerr "$LOCKER" false lock "$LOCK" "$first"
+result "Cannot relock by first" "$OUT"
 
-! outerr "$LOCKER" false lock "$LOCK" $second
-result "Cannot lock by second($second)" "$OUT"
+! outerr "$LOCKER" false lock "$LOCK" "$second"
+result "Cannot lock by second" "$OUT"
 
-out "$LOCKER" false unlock "$LOCK" $first
-out "$LOCKER" false lock "$LOCK" $second
-result "Unlock by first($first), lock by second($second)" "$OUT"
-out "$LOCKER" false unlock "$LOCK" $second
+out "$LOCKER" false unlock "$LOCK" "$first"
+out "$LOCKER" false lock "$LOCK" "$second"
+result "unlock by first, lock by second" "$OUT"
+out "$LOCKER" false unlock "$LOCK" "$second"
 
 
 # Stale locks
-checker_eq_first=(test --checker-arg $first --checker-arg -eq)
-checker_eq_second=(test --checker-arg $second --checker-arg -eq)
+checker_eq_first=(test --checker-arg "$first" --checker-arg -eq)
+checker_eq_second=(test --checker-arg "$second" --checker-arg -eq)
 
-"$LOCKER" false lock "$LOCK" $second
+"$LOCKER" false lock "$LOCK" "$second"
 sleep 2 # make the second stale
 # start cleanup after lock attempt
-out "$LOCKER" --grace-seconds 1 "${checker_eq_second[@]}" lock "$LOCK" $first
+out "$LOCKER" --grace-seconds 1 "${checker_eq_second[@]}" lock "$LOCK" "$first"
 sleep 1
-out "$LOCKER" --grace-seconds 1 false lock "$LOCK" $first
-result "Dead lock by second($second), can lock by first($first)" "$OUT"
+out "$LOCKER" --grace-seconds 1 false lock "$LOCK" "$first"
+result "Stale second, can lock by first" "$OUT"
 
-out "$LOCKER" false unlock "$LOCK" $first
-"$LOCKER" false lock "$LOCK" $second
+out "$LOCKER" false unlock "$LOCK" "$first"
+"$LOCKER" false lock "$LOCK" "$second"
 sleep 2 # make the second stale
-out "$LOCKER" "${checker_eq_second[@]}" lock_check "$LOCK" $first
-result "Dead lock by second($second), can lock_check by first($first)" "$OUT"
-out "$LOCKER" false unlock "$LOCK" $first
+out "$LOCKER" "${checker_eq_second[@]}" lock_check "$LOCK" "$first"
+result "Stale second, can lock_check by first" "$OUT"
+out "$LOCKER" false unlock "$LOCK" "$first"
 
-out "$LOCKER" --grace-seconds 1 false lock "$LOCK" $first
+out "$LOCKER" --grace-seconds 1 false lock "$LOCK" "$first"
 sleep 2 # make first stale
-out "$LOCKER" --grace-seconds 1 "${checker_eq_first[@]}" lock "$LOCK" $second
+out "$LOCKER" --grace-seconds 1 "${checker_eq_first[@]}" lock "$LOCK" "$second"
 sleep 2 # allow cleanup
 OUT=$(ls "$LOCK" 2> /dev/null)
 ! [ -e "$LOCK" ]
-result "Stale lock was cleaned up by lock attempt by another" "$OUT"
+result "Stale lock cleaned up by lock attempt by another" "$OUT"
 
-out "$LOCKER" false lock "$LOCK" $first
-out "$LOCKER" "${checker_eq_first[@]}" lock "$LOCK" $second
+out "$LOCKER" false lock "$LOCK" "$first"
+out "$LOCKER" "${checker_eq_first[@]}" lock "$LOCK" "$second"
 sleep 1 # allow cleanup
 OUT=$(ls "$LOCK" 2> /dev/null)
 ! [ -e "$LOCK" ]
-result "Stale lock (no secs) was cleaned up by lock attempt by another" "$OUT"
+result "Stale lock (no secs) cleaned up by lock attempt by another" "$OUT"
 
 
 if [ "$1" != "--keep" ] || [ $RESULT -eq 0 ] ; then

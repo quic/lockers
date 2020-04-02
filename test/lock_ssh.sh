@@ -5,6 +5,7 @@
 
 MYPROG=$(readlink -f "$0")
 MYDIR=$(dirname "$MYPROG")
+MYNAME=$(basename "$MYPROG")
 source "$MYDIR"/lib.sh
 source "$MYDIR"/results.sh
 
@@ -12,10 +13,10 @@ out() { OUT=$("$@") ; }
 outerr() { OUT=$("$@" 2>&1) ; }
 
 
-LOCKER=$MYDIR/../lock_ssh.sh
+LOCKER=$MYDIR/../$MYNAME
 FAST_LOCK=$MYDIR/../fast_lock.sh
 OUTDIR=$MYDIR/out
-LOCK=$OUTDIR/lock_ssh
+LOCK=$OUTDIR/$MYNAME
 
 NFILE=$LOCK.notified
 [ "$1" = "--notify" ] && { shift ; echo "$@" > "$NFILE" ; exit ; }
@@ -32,57 +33,57 @@ fi
 first=$$
 stable_process & second=$!
 
-out "$LOCKER" lock "$LOCK" $first
-result "Lock by first($first)" "$OUT"
+out "$LOCKER" lock "$LOCK" "$first"
+result "lock first($first)" "$OUT"
 
-uid=$("$MYDIR"/../ssh_id.sh uid $first)
-out "$LOCKER" owner "$LOCK" ; [ "$OUT" =  "$uid" ]
-result "Owner should be ssh_id($uid)" "$OUT"
+uid=$("$MYDIR"/../ssh_id.sh uid "$first")
+out "$LOCKER" owner "$LOCK"
+result_out "owner" "$uid" "$OUT"
 
-out "$LOCKER" owner_pid "$LOCK" ; [ "$OUT" =  "$first" ]
-result "Owner_pid should be first($first)" "$OUT"
+out "$LOCKER" owner_pid "$LOCK"
+result "owner_pid" "$first" "$OUT"
 
-out "$LOCKER" owner_host "$LOCK" ; [ "$OUT" =  "$myhost" ]
-result "Owner_host should be myhost($myhost)" "$OUT"
+out "$LOCKER" owner_host "$LOCK"
+result_out "owner_host" "$myhost" "$OUT"
 
-"$LOCKER" is_mine "$LOCK" $first
-result "first($first) is_mine" "$OUT"
+"$LOCKER" is_mine "$LOCK" "$first"
+result "is_mine first" "$OUT"
 
-! out "$LOCKER" is_mine "$LOCK" $second
-result "second($second) ! is_mine" "$OUT"
+! out "$LOCKER" is_mine "$LOCK" "$second"
+result "! is_mine second($second)" "$OUT"
 
 ! outerr "$LOCKER" lock "$LOCK" first
-result "Cannot relock by first($first)" "$OUT"
+result "Cannot relock by first" "$OUT"
 
-! outerr "$LOCKER" lock "$LOCK" $second
-result "Cannot lock by second($second), locked by first" "$OUT"
+! outerr "$LOCKER" lock "$LOCK" "$second"
+result "Cannot lock by second, locked by first" "$OUT"
 
-out "$LOCKER" unlock "$LOCK" $first
-out "$LOCKER" lock "$LOCK" $second
-result "Unlock by first($first), lock by second($second)" "$OUT"
-out "$LOCKER" unlock "$LOCK" $second
+out "$LOCKER" unlock "$LOCK" "$first"
+out "$LOCKER" lock "$LOCK" "$second"
+result "unlock by first, lock by second" "$OUT"
+out "$LOCKER" unlock "$LOCK" "$second"
 
 
-"$LOCKER" lock "$LOCK" $second
-kill_wait $second > /dev/null 2>&1
+"$LOCKER" lock "$LOCK" "$second"
+kill_wait "$second" > /dev/null 2>&1
 sleep 2 # make the second stale
  # starts cleanup after lock attempt
-out "$LOCKER" --grace-seconds 1 lock "$LOCK" $first
+out "$LOCKER" --grace-seconds 1 lock "$LOCK" "$first"
 sleep 1
-out "$LOCKER" --grace-seconds 1 lock "$LOCK" $first
-result "Dead lock by second($second), can lock by first($first)" "$OUT"
+out "$LOCKER" --grace-seconds 1 lock "$LOCK" "$first"
+result "stale second, can lock by first" "$OUT"
 
-out "$LOCKER" unlock "$LOCK" $first
+out "$LOCKER" unlock "$LOCK" "$first"
 stable_process & second=$!
-"$LOCKER" lock "$LOCK" $second
-kill_wait $second > /dev/null 2>&1
+"$LOCKER" lock "$LOCK" "$second"
+kill_wait "$second" > /dev/null 2>&1
 sleep 2 # make the second stale
-out "$LOCKER" lock_check "$LOCK" $first
-result "Dead lock by second($second), can lock_check by first($first)" "$OUT"
+out "$LOCKER" lock_check "$LOCK" "$first"
+result "stale second, can lock_check by first" "$OUT"
 
-out "$LOCKER" unlock "$LOCK" $first
-! outerr "$LOCKER" lock "$LOCK" $second
-result "Cannot lock by dead second($second)" "$OUT"
+out "$LOCKER" unlock "$LOCK" "$first"
+! outerr "$LOCKER" lock "$LOCK" "$second"
+result "Cannot lock by stale second" "$OUT"
 
 
 BAD_ID=BADID.$$
@@ -90,7 +91,7 @@ BAD_ID=BADID.$$
 CHECKER_ARGS=(--on-check-fail "$MYPROG" --on-check-fail --notify)
 "$LOCKER" "${CHECKER_ARGS[@]}" lock_check "$LOCK" $$ 1
 OUT=$(< "$NFILE")
-result_out "Notify on stale" "$LOCK $myhost $BAD_ID WARNING: host($myhost) \
+result_out "notify on stale" "$LOCK $myhost $BAD_ID WARNING: host($myhost) \
 is unable to identify live/staleness for $BAD_ID: Malformed UID" "$OUT"
 
 

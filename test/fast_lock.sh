@@ -5,36 +5,42 @@
 
 MYPROG=$(readlink -f "$0")
 MYDIR=$(dirname "$MYPROG")
+MYNAME=$(basename "$MYPROG")
 source "$MYDIR"/results.sh
 
 out() { OUT=$("$@") ; }
 outerr() { OUT=$("$@" 2>&1) ; }
 
-LOCKER=$MYDIR/../fast_lock.sh
+LOCKER=$MYDIR/../$MYNAME
 OUTDIR=$MYDIR/out
-LOCK=$OUTDIR/fast_lock
+LOCK=$OUTDIR/$MYNAME
 
 rm -rf "$LOCK" # cleanup any previous runs
 
-out "$LOCKER" lock "$LOCK" first ; result "Lock by first" "$OUT"
+out "$LOCKER" lock "$LOCK" first
+result "lock by first" "$OUT"
 
 out "$LOCKER" owner "$LOCK"
-result_out "Owner should be first" "first" "$OUT"
+result_out "owner should be first" "first" "$OUT"
 
-"$LOCKER" is_mine "$LOCK" first ; result "first is_mine" "$OUT"
+"$LOCKER" is_mine "$LOCK" first
+result "is_mine first" "$OUT"
 
-! out "$LOCKER" is_mine "$LOCK" second ; result "second ! is_mine" "$OUT"
+! out "$LOCKER" is_mine "$LOCK" second
+result "NOT is_mine second" "$OUT"
 
-! outerr "$LOCKER" lock "$LOCK" first ; result "Cannot relock by first" "$OUT"
+! outerr "$LOCKER" lock "$LOCK" first
+result "Cannot relock by first" "$OUT"
 
-! outerr "$LOCKER" lock "$LOCK" second ; result "Cannot lock by second" "$OUT"
+! outerr "$LOCKER" lock "$LOCK" second
+result "Cannot lock by second" "$OUT"
 
 out "$LOCKER" ids_in_use "$LOCK" ;
-result_out "first is ids_in_use" "first" "$OUT"
+result_out "ids_in_use is first" "first" "$OUT"
 
 mkdir -p "$LOCK/build/second/owner"
 out "$LOCKER" ids_in_use "$LOCK" ; OUT=$(echo $OUT)
-result_out "second now in ids_in_use" "first second" "$OUT"
+result_out "ids_in_use now also second" "first second" "$OUT"
 
 "$LOCKER" clean_stale_ids "$LOCK" second
 out "$LOCKER" ids_in_use "$LOCK" ;
@@ -42,7 +48,7 @@ result_out "clean_stale_ids cleaned second" "first" "$OUT"
 
 out "$LOCKER" unlock "$LOCK" first
 out "$LOCKER" lock "$LOCK" second
-result "Unlock by first($first), lock by second($second)" "$OUT"
+result "unlock by first, lock by second" "$OUT"
 out "$LOCKER" unlock "$LOCK" second
 
 rmdir "$OUTDIR"

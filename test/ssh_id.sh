@@ -5,23 +5,26 @@
 
 MYPROG=$(readlink -f "$0")
 MYDIR=$(dirname "$MYPROG")
+MYNAME=$(basename "$MYPROG")
 source "$MYDIR"/lib.sh
 source "$MYDIR"/results.sh
 
-ID=$MYDIR/../ssh_id.sh
+ID=$MYDIR/../$MYNAME
 
-stable_process & opid=$!
 myhost=$(hostname --fqdn)
-
 
 if ! "$ID" is_host_compatible "$myhost" ; then
     echo "WARNING UNTESTED: host incompatible"
     exit 0
 fi
 
-uid=$("$ID" uid $opid)
-out=$(echo "$uid" | grep $opid)
-result "original pid($opid) in uid($uid)" "$out"
+stable_process & opid=$!
+
+uid=$("$ID" uid "$opid")
+result "uid of original pid($opid)" "$uid"
+
+out=$(echo "$uid" | grep "$opid")
+result "original pid in uid($uid)" "$out"
 
 "$ID" is_valid_uid "$uid"
 result "is_valid uid($uid)" "$out"
@@ -29,11 +32,11 @@ result "is_valid uid($uid)" "$out"
 ! "$ID" is_valid_uid "$opid"
 result "Not is_valid opid($opid)" "$out"
 
-sshuid=$("$ID" ssh_uid "$myhost" $opid)
-result_out "Internal ssh_uid($sshuid) == uid($uid)" "$uid" "$sshuid"
+sshuid=$("$ID" ssh_uid "$myhost" "$opid")
+result_out "Internal ssh_uid" "$uid" "$sshuid"
 
 pid=$("$ID" pid "$uid")
-result_out "pid($pid) == original pid($opid)" "$opid" "$pid"
+result_out "pid == original pid" "$opid" "$pid"
 
 ! "$ID" is_stale "$uid"
 result "Not is_stale live uid($uid)"

@@ -5,28 +5,32 @@
 
 MYPROG=$(readlink -f "$0")
 MYDIR=$(dirname "$MYPROG")
+MYNAME=$(basename "$MYPROG")
 source "$MYDIR"/lib.sh
 source "$MYDIR"/results.sh
 
-ID=$MYDIR/../local_id.sh
+ID=$MYDIR/../$MYNAME
 
 stable_process & opid=$!
 
+uid=$("$ID" uid "$opid")
+result "uid of opid($opid)" "$uid"
 
-uid=$("$ID" uid $opid)
-out=$(echo "$uid" | grep $opid) ; result "orignal pid $opid) in uid($uid)" "$out"
-
-pid=$("$ID" pid "$uid")
-result_out "pid($pid) == orignal pid ($opid)" "$opid" "$pid"
-
-! "$ID" is_stale "$uid" ; result "is_stale live uid($uid)"
-
-kill_wait $opid > /dev/null 2>&1
-
-"$ID" is_stale "$uid" ; result "is_stale dead uid($uid)"
+out=$(echo "$uid" | grep "$opid")
+result "orignal pid in uid($uid)" "$out"
 
 pid=$("$ID" pid "$uid")
-result_out "blank pid when dead" "" "$pid"
+result_out "pid of uid" "$opid" "$pid"
 
+! "$ID" is_stale "$uid"
+result "is_stale live uid($uid)"
+
+kill_wait "$opid" > /dev/null 2>&1
+
+"$ID" is_stale "$uid"
+result "is_stale stale uid($uid)"
+
+pid=$("$ID" pid "$uid")
+result_out "blank pid when stale" "" "$pid"
 
 exit $RESULT
