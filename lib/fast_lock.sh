@@ -48,7 +48,7 @@ info() { debug "$@" ; [ "$DEBUG" = "INFO" ] && echo "$(d)$@" >&2 ; }
 error() { echo "$(d) ERROR - $1" >&2 ; exit $2 ; }
 
 # paths... > basenames... (one line each)
-basenames() { local p ; for p in "$@" ; do basename "$p" ; done ; }
+basenames() { local p ; for p in "$@" ; do basename -- "$p" ; done ; }
 
 # ---------- proposals ----------
 
@@ -58,8 +58,8 @@ proposal_ids() { ( shopt -s nullglob ; basenames "$BUILD"/* ) }
 clean_proposal() { # id
     local id=$1
     local build=$BUILD/$id/owner
-    q rm "$build/$id"
-    q rmdir "$build" "$BUILD/$id" "$BUILD"
+    q rm -- "$build/$id"
+    q rmdir -- "$build" "$BUILD/$id" "$BUILD"
 }
 
 build_proposal() { # id > [proposal_dir] (if success)
@@ -67,8 +67,8 @@ build_proposal() { # id > [proposal_dir] (if success)
     local build=$BUILD/$id/owner
     local proposal=$build/$id
 
-    q mkdir -p "$build"
-    q touch "$proposal"
+    q mkdir -p -- "$build"
+    q touch -- "$proposal"
     [ -f "$proposal" ] && echo "$build"
 }
 
@@ -96,7 +96,7 @@ lock() { # id # => 10 critical error (stop spinning!)
 
     debug "attempting to lock with $build"
     # In rare cases, mv prompts, so us -f to prevent blocking by prompt
-    q mv -f "$build" "$BASE" ; rtn=$?
+    q mv -f -- "$build" "$BASE" ; rtn=$?
     if [ $rtn = 0 ] ; then
         info "$BASE locked by $id"
     else
@@ -112,8 +112,8 @@ unlock() { # id
     local id=$1
     [ -n "$id" ] || usage "action '$ACTION' needs <ID>"
 
-    rm "$OWNER/$id" # unlock
-    q rmdir "$OWNER" "$BASE"
+    rm -- "$OWNER/$id" # unlock
+    q rmdir -- "$OWNER" "$BASE"
 
     info "$BASE unlocked by $id"
 }
@@ -128,7 +128,7 @@ is_mine() { # id
 # ----------
 
 usage() { # error_message
-    local prog=$(basename "$0")
+    local prog=$(basename -- "$0")
     cat >&2 <<EOF
 
     usage: $prog lock <lock_path> <id>
