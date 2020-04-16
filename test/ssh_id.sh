@@ -11,9 +11,10 @@ source "$MYDIR"/results.sh
 
 ID=$MYDIR/../$MYNAME
 
-myhost=$(hostname --fqdn)
+MYSSHDEST=$(hostname)
+MYHOSTID=$(hostname --fqdn)
 
-if ! "$ID" is_host_compatible "$myhost" ; then
+if ! "$ID" is_host_compatible "$MYSSHDEST" ; then
     echo "WARNING UNTESTED: host incompatible"
     exit 0
 fi
@@ -32,7 +33,7 @@ result "is_valid uid($uid)" "$out"
 ! "$ID" is_valid_uid "$opid"
 result "Not is_valid opid($opid)" "$out"
 
-sshuid=$("$ID" ssh_uid "$myhost" "$opid")
+sshuid=$("$ID" ssh_uid "$MYHOSTID" "$opid")
 result_out "Internal ssh_uid" "$uid" "$sshuid"
 
 pid=$("$ID" pid "$uid")
@@ -58,7 +59,7 @@ result "Not is_stale malformed"
 
 notification=$("$ID" --on-check-fail echo is_stale "$host_uid")
 result_out "is_stale notifier" \
-    "$myhost $host_uid WARNING: host($myhost) is unable to identify live/staleness for $host_uid: \
+    "$MYHOSTID $host_uid WARNING: host($MYHOSTID) is unable to identify live/staleness for $host_uid: \
 HOSTID Missmatch" "$notification"
 
 if [ "$1" = "--full" ] ; then # not good for automated tests.
@@ -69,10 +70,10 @@ if [ "$1" = "--full" ] ; then # not good for automated tests.
 fi
 
 hostid=$("$ID" hostid "$uid")
-result_out "hostid($uid) == $myhost" "$myhost" "$hostid"
+result_out "hostid($uid) == $MYHOSTID" "$MYHOSTID" "$hostid"
 
 sshdest=$("$ID" sshdest "$uid")
-result_out "sshdest($uid) == $myhost" "$myhost" "$sshdest"
+result_out "sshdest($uid) == $MYHOSTID" "$MYHOSTID" "$sshdest"
 
 kill_wait $opid > /dev/null 2>&1
 
@@ -84,7 +85,7 @@ result "Not is_stale dead mismatch(short) host_uid($host_uid)"
 
 notification=$("$ID" --on-check-fail echo is_stale "$host_uid")
 result_out "is_stale dead notifier" \
-    "$myhost $host_uid WARNING: host($myhost) is unable to identify live/staleness for $host_uid: \
+    "$MYHOSTID $host_uid WARNING: host($MYHOSTID) is unable to identify live/staleness for $host_uid: \
 HOSTID Missmatch" "$notification"
 
 exit $RESULT
