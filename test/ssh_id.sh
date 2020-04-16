@@ -57,10 +57,15 @@ result "Not is_stale mismatch(short) host_uid($host_uid)"
 ! "$ID" is_stale "malformed"
 result "Not is_stale malformed"
 
-notification=$("$ID" --on-check-fail echo is_stale "$host_uid")
-result_out "is_stale notifier" \
-    "$MYHOSTID $host_uid WARNING: host($MYHOSTID) is unable to identify live/staleness for $host_uid: \
-HOSTID Missmatch" "$notification"
+if [ "$MYSSHDEST" = "$MYHOSTID" ] ; then
+    echo "WARNING UNTESTED: is_stale notifier because hostname = fqdn"
+else
+    # This test is fast compared to the "full" one below because the
+    # host exits and so there is no waiting for a time out.`
+    notification=$("$ID" --on-check-fail echo is_stale "$host_uid")
+    result_out "is_stale notifier" "$MYHOSTID $host_uid WARNING: host($MYHOSTID)\
+ is unable to identify live/staleness for $host_uid: HOSTID Missmatch" "$notification"
+fi
 
 if [ "$1" = "--full" ] ; then # not good for automated tests.
     # Can take upwards to 2mins to time out
@@ -80,12 +85,16 @@ kill_wait $opid > /dev/null 2>&1
 "$ID" is_stale "$uid"
 result "is_stale dead uid($uid)"
 
-! "$ID" is_stale "$host_uid"
-result "Not is_stale dead mismatch(short) host_uid($host_uid)"
+if [ "$MYSSHDEST" = "$MYHOSTID" ] ; then
+    echo "WARNING UNTESTED: Not is_stale dead mismatch(short) host_uid because hostname = fqdn"
+    echo "WARNING UNTESTED: is_stale dead notifier because hostname = fqdn"
+else
+    ! "$ID" is_stale "$host_uid"
+    result "Not is_stale dead mismatch(short) host_uid($host_uid)"
 
-notification=$("$ID" --on-check-fail echo is_stale "$host_uid")
-result_out "is_stale dead notifier" \
-    "$MYHOSTID $host_uid WARNING: host($MYHOSTID) is unable to identify live/staleness for $host_uid: \
-HOSTID Missmatch" "$notification"
+    notification=$("$ID" --on-check-fail echo is_stale "$host_uid")
+    result_out "is_stale dead notifier" "$MYHOSTID $host_uid WARNING: host($MYHOSTID)\
+ is unable to identify live/staleness for $host_uid: HOSTID Missmatch" "$notification"
+fi
 
 exit $RESULT
