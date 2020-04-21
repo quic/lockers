@@ -3,20 +3,21 @@
 # Copyright (c) 2013, Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
 
-MYPROG=$(readlink -f "$0")
-MYDIR=$(dirname "$MYPROG")
-MYNAME=$(basename "$MYPROG")
+MYPROG=$(readlink -f -- "$0")
+MYDIR=$(dirname -- "$MYPROG")
+MYNAME=$(basename -- "$MYPROG")
 source "$MYDIR"/results.sh
 
 out() { OUT=$("$@") ; }
 outerr() { OUT=$("$@" 2>&1) ; }
 
 LOCKER=$MYDIR/../$MYNAME
-OUTDIR=$MYDIR/out
-LOCK=$OUTDIR/$MYNAME
+OUTDIR=$MYDIR/out/$MYNAME
+LOCK="--help $(basename "$MYNAME" .sh)"
 
-mkdir -p "$OUTDIR"
-rm -rf "$LOCK" # cleanup any previous runs
+mkdir -p -- "$OUTDIR"
+cd -- "$OUTDIR" || exit
+rm -rf -- "$LOCK" # cleanup any previous runs
 
 first=1
 second=2
@@ -58,7 +59,7 @@ out "$LOCKER" true lock "$LOCK" "$first" 1
 result "Dead lock by second($second), can lock by first($first)" "$OUT"
 
 
-[ $RESULT -eq 0 ] && rm -rf "$LOCK"
-rmdir "$OUTDIR"
+[ $RESULT -eq 0 ] && rm -rf -- "$LOCK"
+rmdir -p -- "$OUTDIR" 2> /dev/null
 
 exit $RESULT
