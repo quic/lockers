@@ -3,9 +3,9 @@
 # Copyright (c) 2013, Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
 
-MYPROG=$(readlink -f "$0")
-MYDIR=$(dirname "$MYPROG")
-MYNAME=$(basename "$MYPROG")
+MYPROG=$(readlink -f -- "$0")
+MYDIR=$(dirname -- "$MYPROG")
+MYNAME=$(basename -- "$MYPROG")
 source "$MYDIR"/../lib/test/lib.sh
 source "$MYDIR"/../lib/test/results.sh
 

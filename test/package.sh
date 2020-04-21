@@ -5,8 +5,8 @@
 
 # Top level test entry for the lockers
 
-MYPROG=$(readlink -f "$0")
-MYDIR=$(dirname "$MYPROG")
+MYPROG=$(readlink -f -- "$0")
+MYDIR=$(dirname -- "$MYPROG")
 
 RESULT=0
 
