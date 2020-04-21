@@ -17,6 +17,8 @@ debug() { [ "$DEBUG" = "DEBUG" ] && echo "$(debug_date)$@" >&2 ; }
 info() { debug "$@" ; [ "$DEBUG" = "INFO" ] && echo "$(debug_date)$@" >&2 ; }
 error() { echo "$(debug_date) ERROR - $1" >&2 ; exit $2 ; }
 
+safe_find_path() { echo "./$1" | sed -e's|^\.//|/|; s|^\./\./|./|' ; } # path > safe_path
+
 args() { # action needed optional [args]...
     local func=$1 needed=$2 optional=$3 n s min=0 supplied=0 ; shift 3
     for n in $needed ; do min=$((min+1)) ; done
@@ -56,19 +58,19 @@ is_check_needed() { # lock uid
     [ -z "$GRACE_SECONDS" ] && return 0
 
     refresh_find_stale
-    [ -n "$(q find "$lock/in_use/$uid" -type d "${FIND_STALE[@]}"))" ]
+    [ -n "$(q find "$(safe_find_path "$lock/in_use/$uid")" -type d "${FIND_STALE[@]}")" ]
 }
 
 clean_if_stale() { # lock uid
     local lock=$1 uid=$2
-    q touch -c "$lock/in_use/$uid" # delay subsequent checks
+    q touch -c -- "$lock/in_use/$uid" # delay subsequent checks
     # Consideration was given to adding a loop in the bg which touches
     # this file in case check is really long.  However that was
     # considered too risky.  If the bg process became errant (which
     # could easily happen), it would prevent the lock from ever
     # recovering if it became stale.
     if is_stale "$uid" ; then
-        q rmdir "$lock/in_use/$uid" "$lock/in_use"
+        q rmdir -- "$lock/in_use/$uid" "$lock/in_use"
         "${FAST_LOCKER[@]}" clean_stale_ids "$lock" "$uid"
         info "cleaned stale id $uid"
     else
@@ -80,52 +82,54 @@ tracked_ids() { # lock > ids...
     local lock=$1 use
     shopt -s nullglob
     for use in "$lock"/in_use/* ; do
-        basename "$use"
+        basename -- "$use"
     done
 }
 
 ids_in_use() { # lock > ids...
-    local lock=$1 uidb uida uidt
+    local lock=$1 uidb uida uidt before after tracked
 
-    local before=$("${FAST_LOCKER[@]}" ids_in_use "$lock")
-    local tracked=$(tracked_ids "$lock")
-    local after=$("${FAST_LOCKER[@]}" ids_in_use "$lock")
-    debug "ids_in_use before: $before"
-    debug "ids_in_use tracked: $tracked"
-    debug "ids_in_use after: $after"
+    readarray -t before < <("${FAST_LOCKER[@]}" ids_in_use "$lock")
+    readarray -t tracked < <(tracked_ids "$lock")
+    readarray -t after < <("${FAST_LOCKER[@]}" ids_in_use "$lock")
+    debug "ids_in_use before: ${before[*]}"
+    debug "ids_in_use tracked: ${tracked[*]}"
+    debug "ids_in_use after: ${after[*]}"
 
     # In tracked but not after? -> no longer in use
-    for uidt in $tracked ; do
-        in_args "$uidt" $after || q rmdir "$lock/in_use/$uidt"
+    for uidt in "${tracked[@]}" ; do
+        in_args "$uidt" "${after[@]}" || q rmdir -- "$lock/in_use/$uidt"
     done
-    q rmdir "$lock/in_use" "$lock"
+    q rmdir -- "$lock/in_use" "$lock"
 
     # Not in before and after? -> not yet or no longer in use
-    for uidb in $before ; do
-        if in_args "$uidb" $after ; then
-            q mkdir -p "$lock/in_use/$uidb"
+    for uidb in "${before[@]}" ; do
+        if in_args "$uidb" "${after[@]}"; then
+            q mkdir -p -- "$lock/in_use/$uidb"
             echo "$uidb"
         fi
     done
 }
 
 ids_need_check() { # lock > potentially_stale_ids
-    local lock=$1 use stale=()
-    local ids=$(ids_in_use "$lock")
-    debug "ids_in_use: $ids"
+    local lock=$1 ids
+    readarray -t ids < <(ids_in_use "$lock")
+    debug "ids_in_use: ${ids[*]}"
 
     refresh_find_stale
-    for use in $(q find "$lock/in_use" -type d "${FIND_STALE[@]}") ; do
-        [ "$use" = "$lock/in_use" ] && continue
-        basename "$use"
+    local in_use ids_in_use in_use_path=$(safe_find_path "$lock/in_use")
+    readarray -t ids_in_use < <(q find "$in_use_path" -type d "${FIND_STALE[@]}")
+    for in_use in "${ids_in_use[@]}" ; do
+        [ "$in_use" = "$in_use_path" ] && continue
+        basename -- "$in_use"
     done
 }
 
 ponder_clean() { # lock skip_uid
-    local lock=$1 skip=$2 uid cleaned=false
+    local lock=$1 skip=$2 uid uids cleaned=false
 
-    local uids=$(ids_need_check "$lock")
-    debug "ids_need_check: $uids"
+    readarray -t uids < <(ids_need_check "$lock")
+    debug "ids_need_check: ${uids[*]}"
     [ -z "$uids" -o "$skip" = "$uids" ] && return
 
     # Increase the chances that someone else checks instead of us by using
@@ -137,13 +141,13 @@ ponder_clean() { # lock skip_uid
         sleep $delay
     fi
 
-    for uid in $uids ; do
+    for uid in "${uids[@]}" ; do
         [ "$skip" = "$uid" ] && continue
         is_check_needed "$lock" "$uid" || continue
         clean_if_stale "$lock" "$uid"
 
         # leave things cleaner than when we started in a constrained fashion
-        $cleaned && return
+        "$cleaned" && return
         cleaned=true
     done
 }
@@ -160,7 +164,7 @@ lock() { # lock id [stale_seconds] # => 10 critical error (stop spinning!)
     [ -n "$secs" ] && GRACE_SECONDS=$secs
 
     lock_nocheck "$lock" "$id" ; rtn=$?
-    q rmdir "$lock/in_use/$id" "$lock"/in_use "$lock"
+    q rmdir -- "$lock/in_use/$id" "$lock"/in_use "$lock"
     q-shell-init ponder_clean "$lock" "$id"
     return $rtn
 }
@@ -175,7 +179,7 @@ lock_check() { # lock id # => 10 critical error
         clean_if_stale "$lock" "$owner"
         lock_nocheck "$lock" "$id" ; rtn=$?
     fi
-    q rmdir "$lock/in_use/$id" "$lock"/in_use "$lock"
+    q rmdir -- "$lock/in_use/$id" "$lock"/in_use "$lock"
     q-shell-init ponder_clean "$lock" "$id"
     return $rtn
 }
@@ -187,7 +191,7 @@ unlock() { # lock id [stale_seconds]
 
     "${FAST_LOCKER[@]}" unlock "$lock" "$id"
 
-    q rmdir "$lock/in_use/$id" "$lock"/in_use "$lock"
+    q rmdir -- "$lock/in_use/$id" "$lock"/in_use "$lock"
     q-shell-init ponder_clean "$lock"
 }
 
@@ -202,7 +206,7 @@ is_mine() { # lock id
 }
 
 usage() { # error_message
-    local prog=$(basename "$0")
+    local prog=$(basename -- "$0")
     cat >&2 <<EOF
 
     usage: $prog [gopts] <stale_checker> lock <lock_path> <id>
@@ -257,10 +261,10 @@ EOF
     exit 10
 }
 
-mypath=$(readlink -e "$0")
-mydir=$(dirname "$mypath")
+MYPATH=$(readlink -e -- "$0")
+MYDIR=$(dirname -- "$MYPATH")
 
-FAST_LOCKER=("$mydir/fast_lock.sh")
+FAST_LOCKER=("$MYDIR/fast_lock.sh")
 STALE_CHECKER=()
 while [ $# -gt 0 ] ; do
     case "$1" in

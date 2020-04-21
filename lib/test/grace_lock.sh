@@ -3,8 +3,9 @@
 # Copyright (c) 2013, Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
 
-MYPROG=$(readlink -f "$0")
-MYDIR=$(dirname "$MYPROG")
+MYPROG=$(readlink -f -- "$0")
+MYDIR=$(dirname -- "$MYPROG")
+MYNAME=$(basename -- "$MYPROG")
 source "$MYDIR"/lib.sh
 source "$MYDIR"/results.sh
 
@@ -12,14 +13,15 @@ out() { OUT=$("$@") ; }
 outerr() { OUT=$("$@" 2>&1) ; }
 
 LOCKER=$MYDIR/../grace_lock.sh
-OUTDIR=$MYDIR/out
-LOCK=$OUTDIR/grace_lock
+OUTDIR=$MYDIR/out/$MYNAME
+mkdir -p -- "$OUTDIR"
+cd -- "$OUTDIR" || exit
 
-mkdir -p "$OUTDIR"
-rm -rf "$LOCK" # cleanup any previous runs
+LOCK="--help $(basename -- "$MYNAME" .sh)"
+rm -rf -- "$LOCK" # cleanup any previous runs
 
-first=1
-second=2
+first="--help 1"
+second="--help 2"
 
 out "$LOCKER" false lock "$LOCK" "$first"
 result "lock by first($first)" "$OUT"
@@ -46,8 +48,8 @@ out "$LOCKER" false unlock "$LOCK" "$second"
 
 
 # Stale locks
-checker_eq_first=(test --checker-arg "$first" --checker-arg -eq)
-checker_eq_second=(test --checker-arg "$second" --checker-arg -eq)
+checker_eq_first=(test --checker-arg "$first" --checker-arg =)
+checker_eq_second=(test --checker-arg "$second" --checker-arg =)
 
 "$LOCKER" false lock "$LOCK" "$second"
 sleep 2 # make the second stale
@@ -81,8 +83,8 @@ result "Stale lock (no secs) cleaned up by lock attempt by another" "$OUT"
 
 
 if [ "$1" != "--keep" ] || [ $RESULT -eq 0 ] ; then
-    rm -rf "$LOCK"
+    rm -rf -- "$LOCK"
 fi
-rmdir "$OUTDIR"
+rmdir -p -- "$OUTDIR" 2> /dev/null
 
 exit $RESULT
