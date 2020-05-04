@@ -146,7 +146,7 @@ uid() { # pid > uid
 }
 
 usage() { # error_message
-    local prog=$(basename "$0")
+    local prog=$(basename -- "$0")
     cat >&2 <<EOF
 
     usage: $prog [nopts] is_stale <uid>
