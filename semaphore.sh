@@ -37,7 +37,8 @@ random_slots() { # max > 1..max(in some random order)
 
 _acquire() { # [--nocheck] max [id] # => 10 critical error (stop spinning!)
     local nocheck=() ; [ "$1" = "--nocheck" ] && { nocheck=("$1"); shift ; }
-    local max=$1 id=($2)  slot locked
+    local max=$1 id=() slot locked
+    [ -n "$2" ] && id+=("$2")
 
     for slot in $(random_slots "$max") ; do
          acquire_slot "${nocheck[@]}" "$slot" "${id[@]}" ; locked=$?
@@ -52,7 +53,8 @@ _acquire() { # [--nocheck] max [id] # => 10 critical error (stop spinning!)
 acquire_slot() { # [--nocheck] slot [id] # => 10 critical error (stop spinning!)
     local fast='' ; [ "$1" = "--nocheck" ] && { fast='fast_'; shift ; }
     args acquire_slot "slot" "id" "$@"
-    local slot=$1 id=($2)  locked
+    local slot=$1 id=() locked
+    [ -n "$2" ] && id+=("$2")
 
     "${LOCKER[@]}" "$fast"lock "$SEMAPHORE/$slot" "${id[@]}" ; locked=$?
     if [ $locked -eq 0 ] ; then
@@ -74,12 +76,14 @@ acquire() { # max [id] # => 10 critical error (stop spinning!)
 }
 
 release() { # [id]
-    local id=($1)  lock
+    local id=() lock
+    [ -n "$1" ] && id+=("$1")
+
     for lock in "$SEMAPHORE"/* ; do
          [ "$lock" = "$SEMAPHORE"/'*' ] && continue
          "${LOCKER[@]}" is_mine "$lock" "${id[@]}" || continue
          "${LOCKER[@]}" unlock "$lock" "${id[@]}"
-         rmdir "$SEMAPHORE" 2> /dev/null
+         rmdir -- "$SEMAPHORE" 2> /dev/null
          info "$SEMAPHORE released by $id"
          return 0
     done
@@ -100,11 +104,13 @@ owner() { # slot > uid
 }
 
 slot() { # [id] > slot
-    local id=($1) lock
+    local id=() lock
+    [ -n "$1" ] && id+=("$1")
+
     for lock in "$SEMAPHORE"/* ; do
          [ "$lock" = "$SEMAPHORE"/'*' ] && continue
          "${LOCKER[@]}" is_mine "$lock" "${id[@]}" || continue
-         echo "$(basename "$lock")"
+         echo "$(basename -- "$lock")"
          return
     done
 }
@@ -112,7 +118,7 @@ slot() { # [id] > slot
 # ----------
 
 usage() { # error_message
-    local prog=$(basename "$0")
+    local prog=$(basename -- "$0")
     cat >&2 <<EOF
 
     usage: $prog <locker> acquire <semaphore_path> max [id]
@@ -149,8 +155,8 @@ EOF
 }
 
 
-mypath=$(readlink -e "$0")
-mydir=$(dirname "$mypath")
+MYPATH=$(readlink -e -- "$0")
+MYDIR=$(dirname -- "$MYPATH")
 
 LOCKER=()
 LOCKER_TESTER=()
@@ -161,8 +167,8 @@ while [ $# -gt 0 ] ; do
         -di|--info) DEBUG=INFO ; TEST_DEBUG=$1 ;;
         -d|--debug) DEBUG=DEBUG ; TEST_DEBUG=$1 ;;
 
-        -l|--local) LOCKER=("$mydir"/lock_local.sh)
-                    LOCKER_TESTER=("$mydir"/test/lock_local.sh) ;;
+        -l|--local) LOCKER=("$MYDIR"/lock_local.sh)
+                    LOCKER_TESTER=("$MYDIR"/test/lock_local.sh) ;;
 
         -a|--locker-arg) LOCKER=("${LOCKER[@]}" "$2") ; shift ;;
 
