@@ -22,7 +22,7 @@ checker_args() { # args...
 }
 
 usage() { # error_message
-    local prog=$(basename "$0")
+    local prog=$(basename -- "$0")
     cat >&2 <<EOF
 
     usage: $prog [opts][gopts] lock <lock_path> <pid>
@@ -70,11 +70,11 @@ EOF
     exit 10
 }
 
-mypath=$(readlink -e "$0")
-mydir=$(dirname "$mypath")
+MYPATH=$(readlink -e -- "$0")
+MYDIR=$(dirname -- "$MYPATH")
 
-ID_HELPER=("$mydir/ssh_id.sh")
-CHECKER=("$mydir/ssh_id.sh")
+ID_HELPER=("$MYDIR/ssh_id.sh")
+CHECKER=("$MYDIR/ssh_id.sh")
 GRACE_SECONDS=10
 while [ $# -gt 0 ] ; do
     case "$1" in
@@ -99,7 +99,7 @@ if [ -n "$CHECK_FAIL" ] ; then
     checker_args "${CHECK_FAIL[@]}" --on-check-fail "$lock"
 fi
 checker_args is_stale
-LOCKER=("$mydir/lib/grace_lock.sh" "${CHECKER[@]}" "${LOCKER_ARGS[@]}")
+LOCKER=("$MYDIR/lib/grace_lock.sh" "${CHECKER[@]}" "${LOCKER_ARGS[@]}")
 
 case "$action" in
     owner) "${LOCKER[@]}" "$action" "$lock" ;;

@@ -3,9 +3,9 @@
 # Copyright (c) 2013, Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
 
-MYPROG=$(readlink -f "$0")
-MYDIR=$(dirname "$MYPROG")
-MYNAME=$(basename "$MYPROG")
+MYPROG=$(readlink -f -- "$0")
+MYDIR=$(dirname -- "$MYPROG")
+MYNAME=$(basename -- "$MYPROG")
 source "$MYDIR"/../lib/test/lib.sh
 source "$MYDIR"/../lib/test/results.sh
 
@@ -15,14 +15,15 @@ outerr() { OUT=$("$@" 2>&1) ; }
 
 LOCKER=$MYDIR/../$MYNAME
 FAST_LOCK=$MYDIR/../lib/fast_lock.sh
-OUTDIR=$MYDIR/out
-LOCK=$OUTDIR/$MYNAME
+OUTDIR=$MYDIR/out/$(basename -- "$MYNAME" .sh)
+LOCK="--help mylock"
 
 NFILE=$LOCK.notified
 [ "$1" = "--notify" ] && { shift ; echo "$@" > "$NFILE" ; exit ; }
 
-mkdir -p "$OUTDIR"
-rm -rf "$LOCK" # cleanup any previous runs
+mkdir -p -- "$OUTDIR"
+cd -- "$OUTDIR" || exit
+rm -rf -- "$LOCK" # cleanup any previous runs
 
 MYSSHDEST=$(hostname --fqdn)
 MYHOSTID=$(hostname --fqdn)
@@ -96,7 +97,7 @@ result_out "notify on stale" "$LOCK $MYSSHDEST $BAD_ID WARNING: host($MYSSHDEST)
 is unable to identify live/staleness for $BAD_ID: Malformed UID" "$OUT"
 
 
-[ $RESULT -eq 0 ] && rm -rf "$LOCK" "$NFILE"
-rmdir "$OUTDIR"
+[ $RESULT -eq 0 ] && rm -rf -- "$LOCK" "$NFILE"
+rmdir -p -- "$OUTDIR" 2>/dev/null
 
 exit $RESULT
