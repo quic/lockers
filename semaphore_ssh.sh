@@ -4,7 +4,7 @@
 # SPDX-License-Identifier: BSD-3-Clause
 
 usage() { # error_message
-    local prog=$(basename "$0")
+    local prog=$(basename -- "$0")
     cat >&2 <<EOF
 
     usage: $prog -u|-h|--help
@@ -54,10 +54,10 @@ locker_args() { # args...
     done
 }
 
-mypath=$(readlink -e "$0")
-mydir=$(dirname "$mypath")
-LOCKER=("$mydir/lock_ssh.sh")
-WRAPPED=("$mydir/semaphore.sh")
+MYPATH=$(readlink -e -- "$0")
+MYDIR=$(dirname -- "$MYPATH")
+LOCKER=("$MYDIR/lock_ssh.sh")
+WRAPPED=("$MYDIR/semaphore.sh")
 
 while [ $# -gt 0 ] ; do
     case "$1" in
