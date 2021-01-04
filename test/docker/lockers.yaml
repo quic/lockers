@@ -1,0 +1,15 @@
+version: '3'
+
+services:
+  run_tests:
+    build: run_tests
+    volumes:
+      - "../../../lockers:/lockers:ro"
+    networks:
+      - locker-net
+    hostname: "locker-run-tests"
+    domainname: "example.com"
+
+networks:
+  locker-net:
+    driver: bridge

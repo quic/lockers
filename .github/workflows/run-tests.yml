@@ -10,3 +10,10 @@ jobs:
     - name: Run tests
       run: ./test/package.sh
       shell: bash
+  run-docker-tests:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - name: Run Docker tests
+      run: ./test/docker/run.sh
+      shell: bash
