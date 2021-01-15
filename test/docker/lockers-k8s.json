@@ -1,0 +1,37 @@
+{
+   "apiVersion": "v1",
+   "kind": "Pod",
+   "metadata": {
+      "name": "PROJECT_NAME"
+   },
+   "spec": {
+      "hostname": "PROJECT_NAME",
+      "subdomain": "example",
+      "containers": [
+         {
+            "name": "PROJECT_NAME",
+            "image": "IMAGE_NAME",
+            "imagePullPolicy": "Never",
+            "ports": [
+               {
+                  "containerPort": 22
+               }
+            ],
+            "volumeMounts": [
+               {
+                  "mountPath": "/lockers",
+                  "name": "locker"
+               }
+            ]
+         }
+      ],
+      "volumes": [
+         {
+            "name": "locker",
+            "hostPath": {
+               "path": "/lockers"
+            }
+         }
+      ]
+   }
+}
