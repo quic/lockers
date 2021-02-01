@@ -6,8 +6,12 @@ blocks not intended for application use are in the `lib` subdirectory.
 
 The main test entry point is `test/package.sh` meant for automation usage.
 The setup to run tests in a dockerized environment is also provided at
-`test/docker`, `test/docker/run.sh` is the main entry point.
+`test/docker`, `test/docker/run.sh` is the main entry point. Tests could
+also be run on minikube K8s setup, `test/docker/test_lockers_minikube.sh`
+is the entry point.
 
+For instructions to manually run tests on minikube cluster please refer to
+`test/docker/test_on_minikube.md`
 
 ## Staleness Checkers
 
