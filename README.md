@@ -30,6 +30,10 @@ along with a way to check these ids for staleness.  Some of the helpers are:
             This id helper can thus be used across machines in a cluster
             as long as automated ssh access to each machine is setup.
 
+* `k8s_id.sh`:  Uses a process pid and the process' hostname as a basis along
+            with some metadata of pod to uniquely identify a process. This id
+            helper can thus be used across pods in a Kubernetes cluster
+            as long as exec access to a pod from an another pod is setup.
 
 ## Higher Level Lockers
 
@@ -44,7 +48,8 @@ currently recommended for use:
                 single machine.
 * `lock_ssh.sh`:  Combines `grace_lock.sh` with `ssh_id.sh`.  Meant for use on a
               cluster via a shared filesystem.
-
+* `lock_k8s.sh`:  Combines `grace_lock.sh` with `k8s_id.sh`.  Meant for use on a
+              Kubernetes cluster via a shared persistent filesystem.
 
 ## Semaphores
 

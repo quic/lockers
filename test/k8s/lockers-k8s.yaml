@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: PROJECT_NAME
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: lockers-pod
+  template:
+    metadata:
+      labels:
+        app: lockers-pod
+    spec:
+      hostname: PROJECT_NAME
+      subdomain: example
+      containers:
+      - name: PROJECT_NAME
+        image: IMAGE_NAME
+        command: [ "/bin/bash", "-ce", "tail -f /dev/null" ]
+        imagePullPolicy: Never
+        env:
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NODE
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+        - name: POD_UID
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.uid
+        volumeMounts:
+        - name: locker
+          mountPath: /lockers
+      volumes:
+      - name: locker
+        hostPath:
+          path: /home/docker/lockers
