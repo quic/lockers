@@ -33,10 +33,34 @@ run_test_with_dots() { # cmds...
     wait $pid
 }
 
-DEPLOYMENT="lockers-k8s-id-test-$$"
-ID_CHECKER="/lockers/$MYNAME"
-k8s_check_prerequisite || die "Make sure minikube is installed and running"
-k8s_setup_test_env
+usage() { # error_message
+    local k8s_msg=$(k8s_usage)
+    cat <<-EOF
+    Usage:
+        $k8s_msg
+
+    Refer to $MYDIR/README.md for more information.
+
+EOF
+
+    [ -n "$1" ] && echo -e '\n'"ERROR: $1"
+    exit 1
+}
+
+while [ $# -gt 0 ] ; do
+    case "$1" in
+        -h|--help)    usage ;;
+        *)            k8s_parse_arg "$@" ; args=$? ; [ "$args" = 0 ] && usage ; shift $args ;;
+    esac
+done
+
+K8S_PVC_NAME="lockers-repo"
+K8S_YAMLS_DIR=$MYDIR
+K8S_DOCKER_CONTEXT="$MYDIR"/../../
+K8S_DEPLOYMENT="lockers-k8s-id-test-$$"
+ID_CHECKER="/home/locker_user/lockers/$MYNAME"
+k8s_check_prerequisite || die "Prerequisite check failed, make sure kubernetes client running"
+k8s_setup_test_env || die "Failed to setup the test environment"
 
 STABLE_A=$(k8s_stable_process "$POD_A")
 STABLE_B=$(k8s_stable_process "$POD_B")

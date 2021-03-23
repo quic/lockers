@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: PROJECT_NAME
+  namespace: NAMESPACE_NAME
 spec:
   replicas: 2
   selector:
@@ -14,11 +15,12 @@ spec:
     spec:
       hostname: PROJECT_NAME
       subdomain: example
+      serviceAccountName: SERVICE_ACCOUNT_NAME
       containers:
       - name: PROJECT_NAME
         image: IMAGE_NAME
-        command: [ "/bin/bash", "-ce", "tail -f /dev/null" ]
-        imagePullPolicy: Never
+        command: [ "/bin/bash", "-ce", "tail -f /dev/null"]
+        imagePullPolicy: IMAGE_PULL_POLICY
         env:
         - name: POD_NAME
           valueFrom:
@@ -39,7 +41,21 @@ spec:
         volumeMounts:
         - name: locker
           mountPath: /lockers
+      initContainers:
+      - name: fix-vol-perms
+        image: busybox
+        command:
+        - /bin/sh
+        - -c
+        - "chown 1000:1000 /lockers; chmod 775 /lockers"
+        resources:
+          requests:
+            cpu: 10m
+            memory: 10Mi
+        volumeMounts:
+        - name: locker
+          mountPath: /lockers
       volumes:
       - name: locker
-        hostPath:
-          path: /home/docker/lockers
+        persistentVolumeClaim:
+          claimName: lockers-repo

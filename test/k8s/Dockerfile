@@ -15,7 +15,8 @@ RUN mv ./kubectl /usr/local/bin
 RUN groupadd -f -g $GID users2
 RUN useradd -u $UID -g $GID $USER
 
-RUN mkdir -p $USER_HOME \
-  && chown -R $USER $USER_HOME
+RUN mkdir -p $USER_HOME/lockers
+COPY ./ $USER_HOME/lockers/
+RUN chown -R $UID:$GID $USER_HOME
 
 USER locker_user

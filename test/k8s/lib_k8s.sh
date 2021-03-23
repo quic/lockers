@@ -3,57 +3,70 @@
 # Copyright (c) 2021, Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
 
-wait_for() { # timeout [args]...
-    local timeout=$1 ; shift
-    local remaining_time
-    for remaining_time in $(seq "$timeout" -2 1) ; do
-        "$@" && return
-        echo -n "."
-        sleep 2s
-    done
-    return 1
+source "$(dirname -- "$0")/lib_minikube.sh"
+
+K8S_USE_MINIKUBE=false
+K8S_NAMESPACE=default
+K8S_SERVICE_ACCOUNT=default
+K8S_CREATE_ROLE=false
+K8S_CREATE_PVC=false
+
+k8s_die() { echo "$1" >&2 ; kill $$ ; exit 1 ; } # error_message
+
+k8s_usage() {
+    echo "
+        -h|--help                     Usage/help
+        -m|--minikube                 tests will be run on minikube cluster
+        -d|--docker-registry          Docker registry from where k8s server will pull images
+        -n|--namespace                Namespace where the pod should be created
+        -s|--service-account          Service account with enough roles to run the tests
+                                      (create on pods/exec and get on pods and nodes)
+        --create-role                 Create the role specified by ./role.yaml
+        --create-pvc                  create the pvc specified by ./pvc.yaml
+        -p|--pvc-name                 Name of existing PersistentVolumeClaim to be used for tests
+    "
 }
 
-k8s_check_prerequisite() {
-    minikube version > /dev/null || return 1
-    local status=$(minikube status -o=json)
-    echo "$status" | jq ."Kubelet" | grep -q "Running" || return 1
-    echo "$status" | jq ."Host" | grep -q "Running" || return 1
+k8s_parse_arg() { # args # returns args consumed
+    case "$1" in
+        -m|--minikube)        K8S_USE_MINIKUBE=true ; return 1 ;;
+        -d|--docker-registry) shift ; K8S_DOCKER_REGISTRY=$1 ; return 2 ;;
+        -n|--namespace)       shift ; K8S_NAMESPACE=$1 ; return 2 ;;
+        -s|--service-account) shift ; K8S_SERVICE_ACCOUNT=$1 ; return 2 ;;
+        --create-role)        K8S_CREATE_ROLE=true ; return 1 ;;
+        --create-pvc)         K8S_CREATE_PVC=true ; return 1 ;;
+        -p|--pvc-name)        shift ; K8S_PVC_NAME=$1 ; return 2 ;;
+    esac
     return 0
 }
 
-k8s_use_minikube_docker_deamon() {
-    eval $(minikube docker-env) \
-        || die "Cannot point to minikube's docker env"
-}
-
-k8s_minikube_mount_lockers() {
-    local seconds_mount_timeout=60
-    minikube mount "$MYDIR"/../../../lockers:/lockers > /dev/null &
-    local mount_pid=$!
-    if wait_for "$seconds_mount_timeout" minikube ssh '[ -d /lockers ]' &> /dev/null ; then
-        minikube ssh 'cp -r /lockers ~/'
-    else
-        die "Mount failed on minikube"
-    fi
-    kill -9 $mount_pid > /dev/null 2>&1
-    trap "minikube ssh 'rm -rf ~/lockers'" EXIT
+k8s_check_prerequisite() {
+    kubectl version --client=true > /dev/null 2>&1 || k8s_die "kubectl client not installed"
+    [ "$K8S_USE_MINIKUBE" = "true" ] || return 0
+    minikube_check_prerequisite
 }
 
 k8s_get_manifest() { # pod_name image
-    local manifest=$(cat "$MYDIR"/lockers-k8s.yaml)
+    local manifest=$(cat "$K8S_YAMLS_DIR"/lockers-k8s.yaml)
     manifest="${manifest//PROJECT_NAME/$1}"
     manifest="${manifest//IMAGE_NAME/$2}"
+    manifest="${manifest//NAMESPACE_NAME/$K8S_NAMESPACE}"
+    manifest="${manifest//SERVICE_ACCOUNT_NAME/$K8S_SERVICE_ACCOUNT}"
+    if [ "$K8S_USE_MINIKUBE" = "true" ] ; then
+        manifest="${manifest//IMAGE_PULL_POLICY/Never}"
+    else
+        manifest="${manifest//IMAGE_PULL_POLICY/Always}"
+    fi
     echo "$manifest"
 }
 
 k8s_end_test() { # exit_code
-    kubectl delete deployment "$DEPLOYMENT"
+    kubectl delete deployment "$K8S_DEPLOYMENT"
     exit $1
 }
 
 k8s_populate_pods() {
-    local pods="$(kubectl get pods --sort-by=.status.startTime | awk '{print $1}' | grep "$DEPLOYMENT")"
+    local pods="$(kubectl get pods --sort-by=.status.startTime | awk '{print $1}' | grep "$K8S_DEPLOYMENT")"
     POD_A="$(echo "$pods" | sed -n 1p)"
     POD_B="$(echo "$pods" | sed -n 2p)"
 }
@@ -68,18 +81,30 @@ k8s_stable_process() { # pod
 }
 
 k8s_setup_test_env() {
-    local image_name="${DEPLOYMENT}:latest"
+    [ -z "$K8S_DEPLOYMENT" ] && k8s_die "set K8S_DEPLOYMENT"
+    [ -z "$K8S_DOCKER_CONTEXT" ] && k8s_die "set K8S_DOCKER_CONTEXT"
+    [ -z "$K8S_YAMLS_DIR" ] &&  k8s_die "set K8S_YAMLS_DIR"
 
-    k8s_use_minikube_docker_deamon
-    k8s_minikube_mount_lockers
-    local ret
-    docker build --quiet -t "$DEPLOYMENT"  -< "$MYDIR"/Dockerfile ; ret=$?
+    local image_name="${K8S_DEPLOYMENT}"
+
+    if [ "$K8S_USE_MINIKUBE" = "true" ] ; then
+        minikube_docker_deamon || k8s_die "Failed shifting to minikube docker"
+    else
+        [ -z "$K8S_DOCKER_REGISTRY" ] &&  k8s_die "set K8S_DOCKER_REGISTRY"
+        image_name="${K8S_DOCKER_REGISTRY}:${image_name}"
+    fi
+    docker build --quiet -t "$image_name"  -f "$K8S_YAMLS_DIR"/Dockerfile $K8S_DOCKER_CONTEXT
+    local ret=$?
+
+    [ "$K8S_USE_MINIKUBE" = "true" ] || docker push "$image_name"
 
     if [ $ret -eq 0 ] ; then
-        k8s_get_manifest "$DEPLOYMENT" "$image_name" | kubectl apply -f  -
-        kubectl apply -f "$MYDIR"/role.yaml
+        [ "$K8S_CREATE_ROLE" = "true" ] && kubectl apply -f "$K8S_YAMLS_DIR"/role.yaml
+        [ "$K8S_CREATE_PVC" = "true" ] && kubectl apply -f "$K8S_YAMLS_DIR"/pvc.yaml
+        k8s_get_manifest "$K8S_DEPLOYMENT" "$image_name" | kubectl apply -f -
+
         echo "Waiting for deployment to be ready"
-        kubectl rollout status deployment "$DEPLOYMENT" > /dev/null
+        kubectl rollout status deployment "$K8S_DEPLOYMENT" > /dev/null
     else
         k8s_end_test $ret
     fi
