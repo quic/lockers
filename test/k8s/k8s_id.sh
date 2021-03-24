@@ -74,6 +74,11 @@ k8s_exec "$POD_B" kill -9 "$STABLE_B"
 out k8s_exec "$POD_A" "$ID_CHECKER" is_process_stale "$uid"
 result "is_process_stale($uid) by pod A" "$OUT"
 
+# Reaped process test
+reaped_uid=$(k8s_exec "$POD_B" "/bin/bash" "-c" '"$0" uid $$' "$ID_CHECKER")
+out k8s_exec "$POD_A" "$ID_CHECKER" is_process_stale "$reaped_uid"
+result "is_process_stale($reaped_uid) by pod A for reaped process of pod B" "$OUT"
+
 kubectl delete pod "$POD_B"
 
 out k8s_exec "$POD_A" "$ID_CHECKER" is_pod_not_registered "$uid"

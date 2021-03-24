@@ -7,6 +7,7 @@ ERR_UID_FETCH=12
 ERR_MALFORMED_UID=20
 ERR_NOT_IN_K8=30
 ERR_MISSING_ARG=127
+ERR_INCOMPLETE=13
 
 # Minimum seconds to determine a missed heartbeat. The default delay
 # between heartbeats in K8s v1.20 is 5mins. This value provides a
@@ -95,16 +96,25 @@ is_process_stale() { # uid
     local namespace=$(_namespace "$uid")
     local pod_name=$(_pod_name "$uid")
     local curr_info
+    local marker=COMPLETED
 
-    curr_info=$(kubectl -n "$namespace" exec "$pod_name" \
-        --  awk '!f {print $22" "$3 ; f++ ; nextfile} ; f==1 && /^btime/ {print $2}' \
-            /proc/$pid/stat /proc/stat 2>&1) || return 1
+    local curr_info=$(kubectl -n "$namespace" exec "$pod_name" -- \
+                    awk -v pid="$pid" -v marker="$marker" '$1 == "btime" \
+                    { btime=$2 ; \
+                      pidfile="/proc/"pid"/stat" ; getline < pidfile ; \
+                      print btime, $22, $3, marker \
+                    }' /proc/stat)  || return 1
 
-    local curr_starttime=$(echo "$curr_info" | awk 'NR==1 {print $1}' ; )
-    local curr_state=$(echo "$curr_info" | awk 'NR==1 {print $2}' ; )
-    local curr_boottime=$(echo "$curr_info" | awk 'NR==2' ; )
+    curr_boottime=$(echo "$curr_info" | awk 'NR==1 {print $1}' ; )
+    curr_starttime=$(echo "$curr_info" | awk 'NR==1 {print $2}' ; )
+    curr_state=$(echo "$curr_info" | awk 'NR==1 {print $3}' ; )
+    curr_marker=$(echo "$curr_info" | awk 'NR==1 {print $4}' ; )
 
     [ -z "$curr_boottime" ] && return 1
+    if [ "$curr_marker" != "$marker" ] ; then
+        [ "$curr_state" = "$marker" -o "$curr_starttime" = "$marker" ] || return $ERR_INCOMPLETE
+    fi
+
     # treat zombie processes as stale
     [ -z "$curr_starttime" -o -z "$curr_state" -o "$curr_state" = "Z" ] && return 0
     # Linux bootimes can vary by up to one second:
