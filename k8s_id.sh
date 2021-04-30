@@ -44,14 +44,17 @@ _namespace() { _hostid "$1" | awk -F+ '{print $2}' ; } # uid > namespace
 _pod_name() { _hostid "$1" | awk -F+ '{print $3}' ; } # uid > pod_name
 _pod_uid() { _hostid "$1" | awk -F+ '{print $4}' ; } # uid > pod_uid
 
+is_host_compatible() {
+    [ -n "$POD_NODE" ] && [ -n "$POD_NAMESPACE" ] && \
+    [ -n "$POD_NAME" ] && [ -n "$POD_UID" ] || return $ERR_NOT_IN_K8
+}
+
 pod_uhost() {
+    is_host_compatible || return
+
     # pod_uid and namespace could alone give unique id, but
     # node and pod name are required for staleness checks
     # and to exec into them.
-    [ -z "$POD_NODE" ] && return $ERR_NOT_IN_K8
-    [ -z "$POD_NAMESPACE" ] && return $ERR_NOT_IN_K8
-    [ -z "$POD_NAME" ] && return $ERR_NOT_IN_K8
-    [ -z "$POD_UID" ] && return $ERR_NOT_IN_K8
 
     # From the naming convetions of K8s objects explained in the references below
     # it is assumed that chances of occurance of character '+' are low and hence

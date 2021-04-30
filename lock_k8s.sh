@@ -15,6 +15,8 @@ usage() { # error_message
            $prog [opts] owner <lock_path> > uid
            $prog [opts] is_mine <lock_path> <pid|uid>
 
+           $prog is_host_compatible
+
     A lock manager designed for cluster use via a shared filesystem with
     K8s run checks.
 

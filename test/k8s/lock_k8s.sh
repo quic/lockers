@@ -62,6 +62,12 @@ STABLE_B=$(k8s_stable_process "$POD_B")
 
 echo "Running Tests...."
 
+! k8s_exec "$POD_B" "env" "-i" "$LOCKER" is_host_compatible
+result "negative is_host_compatible check on pod B"
+
+k8s_exec "$POD_B" "$LOCKER" is_host_compatible
+result "is_host_compatible check on pod B"
+
 out k8s_exec "$POD_A" "$LOCKER" lock "$LOCK" "$STABLE_A"
 result "lock by pod A($STABLE_A)" "$OUT"
 
