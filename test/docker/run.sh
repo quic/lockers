@@ -21,11 +21,10 @@ run_lockers_test() {
     docker-compose "${compose_args[@]}" build ; ret=$?
     if [ 0 -eq $ret ] ; then
         docker-compose "${compose_args[@]}" up -d
-        local runtests_container=$(docker ps | grep "$project_name"_run_tests | awk '{print $1}')
-        docker exec --user=locker_user "$runtests_container" \
-            bash -c '/start.sh' || ret=$?
+        docker-compose "${compose_args[@]}" exec -T --user=locker_user \
+            run_tests bash -c '/start.sh' || ret=$?
     fi
-    docker-compose "${compose_args[@]}" down -v --rmi all --remove-orphans
+    docker-compose "${compose_args[@]}" down -v --rmi local
     return "$ret"
 }
 
