@@ -4,7 +4,7 @@ services:
   run_tests:
     build: run_tests
     volumes:
-      - "../../../lockers:/lockers:ro"
+      - "../../:/lockers:ro"
     networks:
       - locker-net
     hostname: "locker-run-tests"
