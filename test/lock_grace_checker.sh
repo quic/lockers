@@ -15,8 +15,8 @@ LOCKER=$MYDIR/../lock_grace_checker.sh
 OUTDIR=$MYDIR/out
 LOCK=$OUTDIR/lock_grace_checker
 
-mkdir -p "$OUTDIR"
-rm -rf "$LOCK" # cleanup any previous runs
+mkdir -p -- "$OUTDIR"
+rm -rf -- "$LOCK" # cleanup any previous runs
 
 first=1
 second=2
@@ -64,7 +64,7 @@ result "Dead lock by second($second), can lock_check by first($first)" "$OUT"
 
 out "$LOCKER" true unlock "$LOCK" $first
 
-[ $RESULT -eq 0 ] && rm -rf "$LOCK"
-rmdir "$OUTDIR"
+[ $RESULT -eq 0 ] && rm -rf -- "$LOCK"
+rmdir -- "$OUTDIR"
 
 exit $RESULT

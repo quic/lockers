@@ -59,7 +59,7 @@ test_one() { # dir id [lock_unlock_options]
     args test_one "dir id" "lock_unlock_options" "$@"
     local dir=$1 id=$2  i=0 git=git
 
-    q mkdir -p "$dir"
+    q mkdir -p -- "$dir"
     cd "$dir" || exit
 
     while true ; do

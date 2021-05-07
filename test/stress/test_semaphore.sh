@@ -26,7 +26,7 @@ test_semaphore_one() { # dir max [id]
     args test_one "dir max" "id" "$@"
     local dir=$1 max=$2 id=($3) slot i=0 git
 
-    q mkdir -p "$dir"
+    q mkdir -p -- "$dir"
     cd "$dir" || exit
 
     while true ; do
@@ -51,7 +51,7 @@ test_semaphore_ten() { # dir [--stop]
 
     local dir=$1 ; shift
     [ -d "$dir" ] &&  error "test dir $dir exists, please clean it up first"
-    q mkdir -p "$dir"
+    q mkdir -p -- "$dir"
 
     for i in $(seq 10) ; do
          test_semaphore_newpid "$dir" 3 > "$dir/$i.out" 2> "$dir/$i.err" &

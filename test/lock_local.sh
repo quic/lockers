@@ -20,7 +20,7 @@ cd -- "$OUTDIR" || exit
 LOCK="--help $(basename "$MYNAME" .sh)"
 ID=$MYDIR/../local_id.sh
 
-rm -rf "$LOCK" # cleanup any previous runs
+rm -rf -- "$LOCK" # cleanup any previous runs
 
 first=$$
 stable_process & second=$!

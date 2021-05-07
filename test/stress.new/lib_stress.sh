@@ -14,7 +14,7 @@ lib_stress_task_count() { # dir [subdir]
     local dir=$1/$2 slot=$2
     [ -n "$slot" ] && slot=${slot}:
     if ! [ -d "$dir" ] ; then
-        mkdir -p "$dir"
+        mkdir -p -- "$dir"
         echo "Counting in $dir"
         echo 0 > "$dir/a"
         echo 0 > "$dir/b"
@@ -42,7 +42,7 @@ lib_stress_lock_task() { # count --restart
     local cnt=$1 i=0
 
     if [ "$2" = "--restart" -a  -n "$LIB_STRESS_CLEAN" ] ; then
-        rm -rf "${LIB_STRESS_CLEAN[@]}"
+        rm -rf -- "${LIB_STRESS_CLEAN[@]}"
     fi
 
     while [ "$i" != "$cnt" ] ; do
@@ -67,7 +67,7 @@ lib_stress_semaphore_task() { # count --restart
     local cnt=$1 i=0 slot
 
     if [ "$2" = "--restart" -a  -n "$LIB_STRESS_CLEAN" ] ; then
-        rm -rf "${LIB_STRESS_CLEAN[@]}"
+        rm -rf -- "${LIB_STRESS_CLEAN[@]}"
     fi
 
     while [ "$i" != "$cnt" ] ; do

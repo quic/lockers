@@ -52,7 +52,7 @@ test_lock_one() { # dir id [lock_unlock_options]
     args test_lock_one "dir id" "lock_unlock_options" "$@"
     local dir=$1 id=$2  i=0 git=git
 
-    q mkdir -p "$dir"
+    q mkdir -p -- "$dir"
     cd "$dir" || exit
 
     while true ; do
@@ -82,7 +82,7 @@ test_lock_three() { # dir [--stop] [lock_unlock_options]
 
     local dir=$1 ; shift
     [ -d "$dir" ] &&  error "test dir $dir exists, please clean it up first"
-    q mkdir -p "$dir"
+    q mkdir -p -- "$dir"
 
     for i in $(seq 3) ; do
          test_lock_newpid "$dir" "$@" > "$dir/$i.out" 2> "$dir/$i.err" &
@@ -94,7 +94,7 @@ test_lock_one_fast() { # dir id [lock_unlock_options]
     args test_lock_one_fast "dir id" "lock_unlock_options" "$@"
     local dir=$1 id=$2  i=0
 
-    q mkdir -p "$dir"
+    q mkdir -p -- "$dir"
     cd "$dir" || exit
 
     while true ; do

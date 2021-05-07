@@ -51,7 +51,7 @@ test_one() { # dir max [id]
     args test_one "dir max" "id" "$@"
     local dir=$1 max=$2 id=($3) slot i=0 git
 
-    q mkdir -p "$dir"
+    q mkdir -p -- "$dir"
     cd "$dir" || exit
 
     while true ; do
@@ -73,7 +73,7 @@ test_one_newpid() { "$0" -l $TEST_DEBUG test_one "$1" "$2" $$ ; } # dir max
 test_ten() { # dir [--stop]
     args test_ten "dir" "--stop" "$@"
     [ "$2" == "--stop" ] && { touch "$1"/stop ; exit ; }
-    q mkdir -p "$1"
+    q mkdir -p -- "$1"
     for i in $(seq 10) ; do
          "$0" $TEST_DEBUG -l test_one_newpid "$1" 3 > "$1/$i.out" 2> "$1/$i.err" &
     done
