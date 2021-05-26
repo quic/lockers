@@ -61,19 +61,19 @@ k8s_get_manifest() { # pod_name image
 }
 
 k8s_end_test() { # exit_code
-    kubectl delete deployment "$K8S_DEPLOYMENT"
+    kubectl --namespace="$K8S_NAMESPACE" delete deployment "$K8S_DEPLOYMENT"
     exit $1
 }
 
 k8s_populate_pods() {
-    local pods="$(kubectl get pods --sort-by=.status.startTime | awk '{print $1}' | grep "$K8S_DEPLOYMENT")"
+    local pods="$(kubectl --namespace="$K8S_NAMESPACE" get pods --sort-by=.status.startTime | awk '{print $1}' | grep "$K8S_DEPLOYMENT")"
     POD_A="$(echo "$pods" | sed -n 1p)"
     POD_B="$(echo "$pods" | sed -n 2p)"
 }
 
 k8s_exec() { # pod cmds...
     local pod=$1 ; shift
-    kubectl exec "$pod" -- "$@"
+    kubectl --namespace="$K8S_NAMESPACE" exec "$pod" -- "$@"
 }
 
 k8s_stable_process() { # pod
@@ -99,15 +99,19 @@ k8s_setup_test_env() {
     [ "$K8S_USE_MINIKUBE" = "true" ] || docker push "$image_name"
 
     if [ $ret -eq 0 ] ; then
-        [ "$K8S_CREATE_ROLE" = "true" ] && kubectl apply -f "$K8S_YAMLS_DIR"/role.yaml
-        [ "$K8S_CREATE_PVC" = "true" ] && kubectl apply -f "$K8S_YAMLS_DIR"/pvc.yaml
-        k8s_get_manifest "$K8S_DEPLOYMENT" "$image_name" | kubectl apply -f -
+        [ "$K8S_CREATE_ROLE" = "true" ] && kubectl --namespace="$K8S_NAMESPACE" apply -f "$K8S_YAMLS_DIR"/role.yaml
+        [ "$K8S_CREATE_PVC" = "true" ] && kubectl --namespace="$K8S_NAMESPACE" apply -f "$K8S_YAMLS_DIR"/pvc.yaml
+        k8s_get_manifest "$K8S_DEPLOYMENT" "$image_name" | kubectl --namespace="$K8S_NAMESPACE" apply -f -
 
         echo "Waiting for deployment to be ready"
-        kubectl rollout status deployment "$K8S_DEPLOYMENT" > /dev/null
+        kubectl --namespace="$K8S_NAMESPACE" rollout status deployment "$K8S_DEPLOYMENT" > /dev/null
     else
         k8s_end_test $ret
     fi
 
     k8s_populate_pods
+}
+
+k8s_delete_pod() { # pod
+    kubectl --namespace="$K8S_NAMESPACE" delete pod "$POD_B"
 }

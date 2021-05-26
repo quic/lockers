@@ -120,7 +120,7 @@ result "lock acquired by B($STABLE_B) by recovering stale of pod A($tmp_a_pid)" 
 out k8s_exec "$POD_B" "$LOCKER" is_mine "$LOCK" "$STABLE_B"
 result "is_mine check by B after acquiring stale lock" "$OUT"
 
-kubectl delete pod "$POD_B" # this should make above lock by B stale
+k8s_delete_pod "$POD_B" # this should make above lock by B stale
 k8s_populate_pods # deployment will generate a new POD meantime
 STABLE_B=$(k8s_stable_process "$POD_B")
 
