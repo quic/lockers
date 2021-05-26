@@ -100,7 +100,7 @@ k8s_exec "$POD_A" "$LOCKER" unlock "$LOCK" "$STABLE_A" > /dev/null 2>&1
 out k8s_exec "$POD_B" "$LOCKER" lock "$LOCK" "$STABLE_B"
 result "lock by pod B($STABLE_B)" "$OUT"
 
-uid=$(k8s_exec "$POD_B" ./lockers/k8s_id.sh uid "$STABLE_B")
+uid=$(k8s_exec "$POD_B" "$ID_CHECKER" uid "$STABLE_B")
 out k8s_exec "$POD_B" "$LOCKER" owner "$LOCK"
 result_out "owner check by pod B" "$uid" "$OUT"
 
