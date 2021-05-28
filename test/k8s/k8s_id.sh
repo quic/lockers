@@ -57,7 +57,7 @@ done
 K8S_PVC_NAME="lockers-repo"
 K8S_YAMLS_DIR=$MYDIR
 K8S_DOCKER_CONTEXT="$MYDIR"/../../
-K8S_DEPLOYMENT="lockers-k8s-id-test-$$"
+K8S_DEPLOYMENT="lockers-k8s-id-test-$(uuidgen | tr 'A-Z' 'a-z')"
 ID_CHECKER="/home/locker_user/lockers/$MYNAME"
 k8s_check_prerequisite || die "Prerequisite check failed, make sure kubernetes client running"
 k8s_setup_test_env || die "Failed to setup the test environment"
