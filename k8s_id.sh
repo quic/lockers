@@ -106,7 +106,7 @@ is_process_stale() { # uid
                     { btime=$2 ; \
                       pidfile="/proc/"pid"/stat" ; getline < pidfile ; \
                       print btime, $22, $3, marker \
-                    }' /proc/stat)  || return 1
+                    }' /proc/stat 2>/dev/null)  || return 1
 
     curr_boottime=$(echo "$curr_info" | awk 'NR==1 {print $1}' ; )
     curr_starttime=$(echo "$curr_info" | awk 'NR==1 {print $2}' ; )
