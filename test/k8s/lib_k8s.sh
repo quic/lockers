@@ -3,13 +3,14 @@
 # Copyright (c) 2021, Qualcomm Innovation Center, Inc. All rights reserved.
 # SPDX-License-Identifier: BSD-3-Clause
 
-source "$(dirname -- "$0")/lib_minikube.sh"
+source "$(dirname -- "${BASH_SOURCE[0]}")/lib_minikube.sh"
 
 K8S_USE_MINIKUBE=false
 K8S_NAMESPACE=default
 K8S_SERVICE_ACCOUNT=default
 K8S_CREATE_ROLE=false
 K8S_CREATE_PVC=false
+K8S_REPLICAS_COUNT=2
 
 k8s_die() { echo "$1" >&2 ; kill $$ ; exit 1 ; } # error_message
 
@@ -52,6 +53,7 @@ k8s_get_manifest() { # pod_name image
     manifest="${manifest//IMAGE_NAME/$2}"
     manifest="${manifest//NAMESPACE_NAME/$K8S_NAMESPACE}"
     manifest="${manifest//SERVICE_ACCOUNT_NAME/$K8S_SERVICE_ACCOUNT}"
+    manifest="${manifest//REPLICAS_COUNT/$K8S_REPLICAS_COUNT}"
     if [ "$K8S_USE_MINIKUBE" = "true" ] ; then
         manifest="${manifest//IMAGE_PULL_POLICY/Never}"
     else
@@ -65,8 +67,28 @@ k8s_end_test() { # exit_code
     exit $1
 }
 
+# Sample data for kubectl --namespace="$K8S_NAMESPACE" get pods --sort-by=.status.startTime :
+#
+# NAME                                                              READY   STATUS             RESTARTS   AGE
+# lockers-stress-test-b0f1898e-78aa-44b6-8828-15c3e0867080-94lwrs   0/1     ImagePullBackOff   0          17h
+# lockers-stress-test-b0f1898e-78aa-44b6-8828-15c3e0867080-95s8b8   0/1     Terminating        0          17h
+# lockers-stress-test-b0f1898e-78aa-44b6-8828-15c3e0867080-9hrmrz   0/1     ImagePullBackOff   0          17h
+# test-pod-A                                                        0/1     Ready              0           7h
+#
+# Sample K8S_DEPLOYMENT=lockers-stress-test-b0f1898e-78aa-44b6-8828-15c3e0867080
+#
+# Final k8s_get_pods Output:
+# lockers-stress-test-b0f1898e-78aa-44b6-8828-15c3e0867080-94lwrs
+# lockers-stress-test-b0f1898e-78aa-44b6-8828-15c3e0867080-95s8b8
+# lockers-stress-test-b0f1898e-78aa-44b6-8828-15c3e0867080-9hrmrz
+#
+k8s_get_pods() { # > pods sorted by start time
+    kubectl --namespace="$K8S_NAMESPACE" get pods --sort-by=.status.startTime | \
+        awk '{print $1}' | grep "^$K8S_DEPLOYMENT"
+}
+
 k8s_populate_pods() {
-    local pods="$(kubectl --namespace="$K8S_NAMESPACE" get pods --sort-by=.status.startTime | awk '{print $1}' | grep "$K8S_DEPLOYMENT")"
+    local pods=$(k8s_get_pods)
     POD_A="$(echo "$pods" | sed -n 1p)"
     POD_B="$(echo "$pods" | sed -n 2p)"
 }
