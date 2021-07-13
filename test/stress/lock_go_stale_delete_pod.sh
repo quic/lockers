@@ -1,4 +1,7 @@
 #!/usr/bin/env bash
+#
+# Copyright (c) 2021, Qualcomm Innovation Center, Inc. All rights reserved.
+# SPDX-License-Identifier: BSD-3-Clause
 
 readlink --canonicalize / &> /dev/null || readlink() { greadlink "$@" ; } # for MacOS
 MYPROG=$(readlink -f -- "$0")
